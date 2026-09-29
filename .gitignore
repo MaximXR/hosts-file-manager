@@ -1,0 +1,10 @@
+# IDE and Temp files
+*.tmp
+*.log
+.vs/
+.idea/
+.vscode/
+
+# Build artifacts (dist-win-unpacked is kept as requested)
+obj/
+bin/
