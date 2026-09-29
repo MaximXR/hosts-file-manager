@@ -445,7 +445,7 @@ namespace HostsManager
         private void InitUI()
         {
             this.Text = "Hosts Manager & Shortcut Creator";
-            this.Size = new Size(680, 580);
+            this.Size = new Size(680, 640);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -567,7 +567,7 @@ namespace HostsManager
             {
                 Text = "Сервис GeoHide (Антиблокировка / DNS Прокси)",
                 Location = new Point(15, 10),
-                Size = new Size(635, 135)
+                Size = new Size(635, 185)
             };
 
             chkGeoHide = new CheckBox
@@ -580,19 +580,19 @@ namespace HostsManager
 
             Label lblRegionTitle = new Label
             {
-                Text = "Выберите серверный регион (строго один, домены маршрутизируются через выбранные серверы):",
-                Location = new Point(15, 50),
+                Text = "Выберите серверный регион (выбирается один для маршрутизации):",
+                Location = new Point(15, 48),
                 AutoSize = true
             };
 
-            rbGeoRU = new RadioButton { Text = "Россия (RU) — наименьшая задержка [Рекомендуется]", Location = new Point(30, 75), AutoSize = true, Checked = true };
-            rbGeoEU = new RadioButton { Text = "Европа (EU)", Location = new Point(350, 75), AutoSize = true };
-            rbGeoUS = new RadioButton { Text = "США (US)", Location = new Point(480, 75), AutoSize = true };
+            rbGeoRU = new RadioButton { Text = "Россия (RU) — наименьшая задержка (по умолчанию)", Location = new Point(35, 72), AutoSize = true, Checked = true };
+            rbGeoEU = new RadioButton { Text = "Европа (EU)", Location = new Point(35, 96), AutoSize = true };
+            rbGeoUS = new RadioButton { Text = "США (US)", Location = new Point(35, 120), AutoSize = true };
 
             lblGeoHideInfo = new Label
             {
                 Text = "Статус: Обновлено: " + (string.IsNullOrEmpty(config.GeoHideLastUpdated) ? "Никогда" : config.GeoHideLastUpdated),
-                Location = new Point(15, 105),
+                Location = new Point(15, 152),
                 AutoSize = true,
                 ForeColor = Color.DarkSlateGray
             };
@@ -615,14 +615,14 @@ namespace HostsManager
             GroupBox gbCustom = new GroupBox
             {
                 Text = "Каталог популярных подписок и свои источники (отметьте галочками нужные):",
-                Location = new Point(15, 155),
-                Size = new Size(635, 250)
+                Location = new Point(15, 205),
+                Size = new Size(635, 260)
             };
 
             lvCustomProviders = new ListView
             {
                 Location = new Point(15, 25),
-                Size = new Size(605, 145),
+                Size = new Size(605, 150),
                 View = View.Details,
                 CheckBoxes = true,
                 FullRowSelect = true,
@@ -633,13 +633,13 @@ namespace HostsManager
             lvCustomProviders.Columns.Add("URL источника", 200);
             lvCustomProviders.Columns.Add("Обновлено", 115);
 
-            btnAddCustom = new Button { Text = "➕ Свой URL...", Location = new Point(15, 180), Size = new Size(110, 28) };
+            btnAddCustom = new Button { Text = "➕ Свой URL...", Location = new Point(15, 185), Size = new Size(120, 30) };
             btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(135, 180), Size = new Size(90, 28) };
+            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(145, 185), Size = new Size(100, 30) };
             btnRemoveCustom.Click += BtnRemoveCustom_Click;
 
-            btnResetPresets = new Button { Text = "🔄 Восстановить каталог пресетов", Location = new Point(390, 180), Size = new Size(230, 28) };
+            btnResetPresets = new Button { Text = "🔄 Восстановить каталог пресетов", Location = new Point(375, 185), Size = new Size(245, 30) };
             btnResetPresets.Click += (s, e) =>
             {
                 if (MessageBox.Show("Сбросить список к популярным встроенным пресетам?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -653,7 +653,7 @@ namespace HostsManager
             Label lblCustomHint = new Label
             {
                 Text = "💡 Доступны пресеты: GitHub520 (ускорение GitHub), Windows SpyBlocker (анти-слежка), AdAway и StevenBlack (блокировка рекламы).",
-                Location = new Point(15, 215),
+                Location = new Point(15, 225),
                 Size = new Size(605, 25),
                 ForeColor = Color.DarkSlateBlue
             };
@@ -668,8 +668,8 @@ namespace HostsManager
             btnUpdateNow = new Button
             {
                 Text = "🔄 Синхронизировать hosts сейчас",
-                Location = new Point(15, 415),
-                Size = new Size(635, 40),
+                Location = new Point(15, 475),
+                Size = new Size(635, 42),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240)
             };
@@ -678,7 +678,7 @@ namespace HostsManager
             lblProviderStatus = new Label
             {
                 Text = "Личные ручные записи в hosts изолированы и надежно защищены от перезаписи.",
-                Location = new Point(15, 465),
+                Location = new Point(15, 525),
                 Size = new Size(635, 30),
                 ForeColor = Color.Gray
             };
