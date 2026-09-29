@@ -4,10 +4,10 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Net;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
+using System.Threading;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
@@ -28,16 +28,14 @@ namespace HostsManager
         public string CustomEditorPath { get; set; }
         public bool AlwaysAdmin { get; set; }
         public bool BackupBeforeUpdate { get; set; }
-        public bool SchedulerEnabled { get; set; }
-        public string SchedulerInterval { get; set; }
 
-        // GeoHide settings (выбор одного взаимоисключающего региона)
+        // GeoHide
         public bool GeoHideEnabled { get; set; }
         public string GeoHideRegion { get; set; } // "ru", "eu", "us"
         public string GeoHideLastHash { get; set; }
         public string GeoHideLastUpdated { get; set; }
 
-        // Дополнительные независимые источники (AdBlock, корпоративные и т.д.)
+        // Дополнительные источники
         public List<CustomProviderConfig> CustomProviders { get; set; }
 
         public AppConfig()
@@ -46,8 +44,6 @@ namespace HostsManager
             CustomEditorPath = "";
             AlwaysAdmin = false;
             BackupBeforeUpdate = true;
-            SchedulerEnabled = false;
-            SchedulerInterval = "daily";
 
             GeoHideEnabled = true;
             GeoHideRegion = "ru";
@@ -58,11 +54,31 @@ namespace HostsManager
         }
     }
 
+    public class FastWebClient : WebClient
+    {
+        private int timeoutMs;
+
+        public FastWebClient(int timeoutMs = 10000)
+        {
+            this.timeoutMs = timeoutMs;
+            this.Proxy = null; // Отключаем медленный поиск WPAD прокси
+            this.Encoding = Encoding.UTF8;
+            this.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) HostsManager";
+        }
+
+        protected override WebRequest GetWebRequest(Uri address)
+        {
+            WebRequest req = base.GetWebRequest(address);
+            if (req != null)
+            {
+                req.Timeout = timeoutMs;
+            }
+            return req;
+        }
+    }
+
     static class Program
     {
-        [DllImport("dnsapi.dll", EntryPoint = "DnsFlushResolverCache")]
-        public static extern int DnsFlushResolverCache();
-
         public static List<CustomProviderConfig> GetDefaultPresets()
         {
             return new List<CustomProviderConfig>
@@ -163,6 +179,23 @@ namespace HostsManager
             return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
 
+        public static void FlushDnsSafe()
+        {
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = "ipconfig.exe",
+                    Arguments = "/flushdns",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                };
+                Process p = Process.Start(psi);
+                if (p != null) p.WaitForExit(3000);
+            }
+            catch { }
+        }
+
         [STAThread]
         static void Main(string[] args)
         {
@@ -217,12 +250,9 @@ namespace HostsManager
                 }
 
                 bool hasAnyChanges = false;
-                using (WebClient client = new WebClient())
+                using (FastWebClient client = new FastWebClient(10000))
                 {
-                    client.Encoding = Encoding.UTF8;
-                    client.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) HostsManager";
-
-                    // 1. Обработка GeoHide (один выбранный регион)
+                    // 1. Обработка GeoHide
                     string geoBlockStart = "# === BEGIN HOSTS-MANAGER MANAGED BLOCK [GeoHide] ===";
                     string geoBlockEnd = "# === END HOSTS-MANAGER MANAGED BLOCK [GeoHide] ===";
 
@@ -342,7 +372,7 @@ namespace HostsManager
                 if (hasAnyChanges)
                 {
                     File.WriteAllText(HostsPath, hostsContent, Encoding.UTF8);
-                    DnsFlushResolverCache();
+                    FlushDnsSafe();
                 }
 
                 SaveConfig(config);
@@ -397,7 +427,6 @@ namespace HostsManager
         private TabControl tabs;
         private TabPage tabShortcuts;
         private TabPage tabProviders;
-        private TabPage tabScheduler;
 
         // Shortcuts tab
         private RadioButton rbOpenWith;
@@ -413,7 +442,7 @@ namespace HostsManager
         private Button btnCreateShortcut;
         private Label lblShortcutHint;
 
-        // Providers tab
+        // Providers tab (GeoHide + Sources + Task Scheduler)
         private CheckBox chkGeoHide;
         private RadioButton rbGeoRU;
         private RadioButton rbGeoEU;
@@ -424,14 +453,14 @@ namespace HostsManager
         private Button btnAddCustom;
         private Button btnRemoveCustom;
         private Button btnResetPresets;
+
+        private TextBox txtSchedulerCmd;
+        private Button btnCopyCmd;
+        private Button btnOpenTaskScheduler;
+        private Button btnAutoCreateTask;
+
         private Button btnUpdateNow;
         private Label lblProviderStatus;
-
-        // Scheduler tab
-        private CheckBox chkScheduler;
-        private ComboBox cboInterval;
-        private Button btnSaveScheduler;
-        private Label lblSchedulerInfo;
 
         private AppConfig config;
 
@@ -445,7 +474,7 @@ namespace HostsManager
         private void InitUI()
         {
             this.Text = "Hosts Manager & Shortcut Creator";
-            this.Size = new Size(680, 640);
+            this.Size = new Size(690, 710);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -456,13 +485,9 @@ namespace HostsManager
             InitShortcutsTab();
             tabs.TabPages.Add(tabShortcuts);
 
-            tabProviders = new TabPage("🌐 Подписки hosts");
+            tabProviders = new TabPage("🌐 Подписки и автообновление");
             InitProvidersTab();
             tabs.TabPages.Add(tabProviders);
-
-            tabScheduler = new TabPage("⏱️ Автообновление");
-            InitSchedulerTab();
-            tabs.TabPages.Add(tabScheduler);
 
             this.Controls.Add(tabs);
         }
@@ -471,9 +496,9 @@ namespace HostsManager
         {
             GroupBox gbEditor = new GroupBox
             {
-                Text = "В каком редакторе открывать по клику",
+                Text = "В каком редакторе открывать hosts по клику на ярлык",
                 Location = new Point(15, 15),
-                Size = new Size(635, 175)
+                Size = new Size(645, 175)
             };
 
             rbOpenWith = new RadioButton { Text = "Стандартное окно Windows «Открыть с помощью...» (выбор редактора)", Location = new Point(20, 25), AutoSize = true, Checked = true };
@@ -482,8 +507,8 @@ namespace HostsManager
             rbNotepad = new RadioButton { Text = "Системный Блокнот (всегда с правами администратора)", Location = new Point(20, 100), AutoSize = true };
             rbCustom = new RadioButton { Text = "Другой редактор:", Location = new Point(20, 125), AutoSize = true };
 
-            txtCustomPath = new TextBox { Location = new Point(160, 124), Size = new Size(370, 23), Enabled = false };
-            btnBrowseCustom = new Button { Text = "Обзор...", Location = new Point(540, 123), Size = new Size(80, 25), Enabled = false };
+            txtCustomPath = new TextBox { Location = new Point(160, 124), Size = new Size(380, 23), Enabled = false };
+            btnBrowseCustom = new Button { Text = "Обзор...", Location = new Point(550, 123), Size = new Size(80, 25), Enabled = false };
 
             rbCustom.CheckedChanged += (s, e) =>
             {
@@ -514,15 +539,15 @@ namespace HostsManager
             GroupBox gbSettings = new GroupBox
             {
                 Text = "Параметры ярлыка",
-                Location = new Point(15, 200),
-                Size = new Size(635, 140)
+                Location = new Point(15, 205),
+                Size = new Size(645, 140)
             };
 
             Label lblName = new Label { Text = "Имя ярлыка:", Location = new Point(20, 30), AutoSize = true };
             txtShortcutName = new TextBox { Text = "Hosts", Location = new Point(140, 27), Size = new Size(200, 23) };
 
             Label lblIcon = new Label { Text = "Иконка:", Location = new Point(20, 65), AutoSize = true };
-            cboIcon = new ComboBox { Location = new Point(140, 62), Size = new Size(470, 23), DropDownStyle = ComboBoxStyle.DropDownList };
+            cboIcon = new ComboBox { Location = new Point(140, 62), Size = new Size(480, 23), DropDownStyle = ComboBoxStyle.DropDownList };
             cboIcon.Items.Add("Системная иконка файла без расширения (shell32.dll, 0) [Рекомендуется]");
             cboIcon.Items.Add("Иконка Блокнота (notepad.exe, 0)");
             cboIcon.Items.Add("Иконка Notepad++ (при наличии)");
@@ -539,8 +564,8 @@ namespace HostsManager
             btnCreateShortcut = new Button
             {
                 Text = "✨ Создать ярлык на Рабочем столе",
-                Location = new Point(15, 355),
-                Size = new Size(635, 42),
+                Location = new Point(15, 360),
+                Size = new Size(645, 44),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 245, 255)
             };
@@ -549,8 +574,8 @@ namespace HostsManager
             lblShortcutHint = new Label
             {
                 Text = "💡 Подсказка: После создания нажмите правой кнопкой по ярлыку на Рабочем столе и выберите «Закрепить на панели задач».",
-                Location = new Point(15, 410),
-                Size = new Size(635, 35),
+                Location = new Point(15, 415),
+                Size = new Size(645, 35),
                 ForeColor = Color.Gray
             };
 
@@ -565,34 +590,34 @@ namespace HostsManager
             // Блок 1: GeoHide
             GroupBox gbGeo = new GroupBox
             {
-                Text = "Сервис GeoHide (Антиблокировка / DNS Прокси)",
-                Location = new Point(15, 10),
-                Size = new Size(635, 185)
+                Text = "1. Сервис GeoHide (Антиблокировка / DNS Прокси)",
+                Location = new Point(15, 8),
+                Size = new Size(645, 175)
             };
 
             chkGeoHide = new CheckBox
             {
                 Text = "Включить GeoHide (автоматически обновлять правила обхода)",
-                Location = new Point(15, 22),
+                Location = new Point(15, 20),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
 
             Label lblRegionTitle = new Label
             {
-                Text = "Выберите серверный регион (выбирается один для маршрутизации):",
-                Location = new Point(15, 48),
+                Text = "Серверный регион (выбирается строго один для маршрутизации):",
+                Location = new Point(15, 45),
                 AutoSize = true
             };
 
-            rbGeoRU = new RadioButton { Text = "Россия (RU) — наименьшая задержка (по умолчанию)", Location = new Point(35, 72), AutoSize = true, Checked = true };
-            rbGeoEU = new RadioButton { Text = "Европа (EU)", Location = new Point(35, 96), AutoSize = true };
-            rbGeoUS = new RadioButton { Text = "США (US)", Location = new Point(35, 120), AutoSize = true };
+            rbGeoRU = new RadioButton { Text = "Россия (RU) — наименьшая задержка (по умолчанию)", Location = new Point(35, 68), AutoSize = true, Checked = true };
+            rbGeoEU = new RadioButton { Text = "Европа (EU)", Location = new Point(35, 92), AutoSize = true };
+            rbGeoUS = new RadioButton { Text = "США (US)", Location = new Point(35, 116), AutoSize = true };
 
             lblGeoHideInfo = new Label
             {
                 Text = "Статус: Обновлено: " + (string.IsNullOrEmpty(config.GeoHideLastUpdated) ? "Никогда" : config.GeoHideLastUpdated),
-                Location = new Point(15, 152),
+                Location = new Point(15, 145),
                 AutoSize = true,
                 ForeColor = Color.DarkSlateGray
             };
@@ -611,35 +636,35 @@ namespace HostsManager
             gbGeo.Controls.Add(rbGeoUS);
             gbGeo.Controls.Add(lblGeoHideInfo);
 
-            // Блок 2: Дополнительные независимые источники
+            // Блок 2: Дополнительные источники
             GroupBox gbCustom = new GroupBox
             {
-                Text = "Каталог популярных подписок и свои источники (отметьте галочками нужные):",
-                Location = new Point(15, 205),
-                Size = new Size(635, 260)
+                Text = "2. Каталог популярных подписок и свои источники (отметьте нужные галочками):",
+                Location = new Point(15, 190),
+                Size = new Size(645, 220)
             };
 
             lvCustomProviders = new ListView
             {
-                Location = new Point(15, 25),
-                Size = new Size(605, 150),
+                Location = new Point(15, 22),
+                Size = new Size(615, 125),
                 View = View.Details,
                 CheckBoxes = true,
                 FullRowSelect = true,
                 GridLines = true
             };
-            lvCustomProviders.Columns.Add("Вкл", 50);
-            lvCustomProviders.Columns.Add("Название", 230);
-            lvCustomProviders.Columns.Add("URL источника", 200);
+            lvCustomProviders.Columns.Add("Вкл", 45);
+            lvCustomProviders.Columns.Add("Название", 240);
+            lvCustomProviders.Columns.Add("URL источника", 205);
             lvCustomProviders.Columns.Add("Обновлено", 115);
 
-            btnAddCustom = new Button { Text = "➕ Свой URL...", Location = new Point(15, 185), Size = new Size(120, 30) };
+            btnAddCustom = new Button { Text = "➕ Свой URL...", Location = new Point(15, 153), Size = new Size(115, 28) };
             btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(145, 185), Size = new Size(100, 30) };
+            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(135, 153), Size = new Size(90, 28) };
             btnRemoveCustom.Click += BtnRemoveCustom_Click;
 
-            btnResetPresets = new Button { Text = "🔄 Восстановить каталог пресетов", Location = new Point(375, 185), Size = new Size(245, 30) };
+            btnResetPresets = new Button { Text = "🔄 Восстановить каталог пресетов", Location = new Point(385, 153), Size = new Size(245, 28) };
             btnResetPresets.Click += (s, e) =>
             {
                 if (MessageBox.Show("Сбросить список к популярным встроенным пресетам?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -652,9 +677,9 @@ namespace HostsManager
 
             Label lblCustomHint = new Label
             {
-                Text = "💡 Доступны пресеты: GitHub520 (ускорение GitHub), Windows SpyBlocker (анти-слежка), AdAway и StevenBlack (блокировка рекламы).",
-                Location = new Point(15, 225),
-                Size = new Size(605, 25),
+                Text = "💡 Пресеты: GitHub520 (ускорение GitHub), Windows SpyBlocker (анти-слежка), AdAway и StevenBlack.",
+                Location = new Point(15, 190),
+                Size = new Size(615, 22),
                 ForeColor = Color.DarkSlateBlue
             };
 
@@ -664,12 +689,82 @@ namespace HostsManager
             gbCustom.Controls.Add(btnResetPresets);
             gbCustom.Controls.Add(lblCustomHint);
 
+            // Блок 3: Планировщик Windows
+            GroupBox gbScheduler = new GroupBox
+            {
+                Text = "3. Фоновое автообновление (Планировщик задач Windows)",
+                Location = new Point(15, 418),
+                Size = new Size(645, 135)
+            };
+
+            Label lblSchedInfo = new Label
+            {
+                Text = "Для тихого фонового автообновления hosts используется команда:",
+                Location = new Point(15, 22),
+                AutoSize = true
+            };
+
+            string cmdString = "\"" + Application.ExecutablePath + "\" /update-silent";
+            txtSchedulerCmd = new TextBox
+            {
+                Text = cmdString,
+                Location = new Point(15, 45),
+                Size = new Size(490, 23),
+                ReadOnly = true,
+                BackColor = Color.WhiteSmoke
+            };
+
+            btnCopyCmd = new Button
+            {
+                Text = "📋 Копировать",
+                Location = new Point(515, 44),
+                Size = new Size(115, 25)
+            };
+            btnCopyCmd.Click += (s, e) =>
+            {
+                Clipboard.SetText(txtSchedulerCmd.Text);
+                MessageBox.Show("Команда скопирована в буфер обмена!", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            };
+
+            btnOpenTaskScheduler = new Button
+            {
+                Text = "📅 Открыть Планировщик Windows (taskschd.msc)",
+                Location = new Point(15, 80),
+                Size = new Size(330, 36),
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+            };
+            btnOpenTaskScheduler.Click += (s, e) =>
+            {
+                try
+                {
+                    Process.Start("taskschd.msc");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Ошибка запуска taskschd.msc: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
+
+            btnAutoCreateTask = new Button
+            {
+                Text = "⚡ Создать задачу (раз в день)",
+                Location = new Point(360, 80),
+                Size = new Size(270, 36)
+            };
+            btnAutoCreateTask.Click += BtnAutoCreateTask_Click;
+
+            gbScheduler.Controls.Add(lblSchedInfo);
+            gbScheduler.Controls.Add(txtSchedulerCmd);
+            gbScheduler.Controls.Add(btnCopyCmd);
+            gbScheduler.Controls.Add(btnOpenTaskScheduler);
+            gbScheduler.Controls.Add(btnAutoCreateTask);
+
             // Кнопка синхронизации
             btnUpdateNow = new Button
             {
                 Text = "🔄 Синхронизировать hosts сейчас",
-                Location = new Point(15, 475),
-                Size = new Size(635, 42),
+                Location = new Point(15, 562),
+                Size = new Size(645, 44),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240)
             };
@@ -678,70 +773,16 @@ namespace HostsManager
             lblProviderStatus = new Label
             {
                 Text = "Личные ручные записи в hosts изолированы и надежно защищены от перезаписи.",
-                Location = new Point(15, 525),
-                Size = new Size(635, 30),
+                Location = new Point(15, 615),
+                Size = new Size(645, 30),
                 ForeColor = Color.Gray
             };
 
             tabProviders.Controls.Add(gbGeo);
             tabProviders.Controls.Add(gbCustom);
+            tabProviders.Controls.Add(gbScheduler);
             tabProviders.Controls.Add(btnUpdateNow);
             tabProviders.Controls.Add(lblProviderStatus);
-        }
-
-        private void InitSchedulerTab()
-        {
-            GroupBox gbSched = new GroupBox
-            {
-                Text = "Фоновое тихое автообновление через Планировщик Windows",
-                Location = new Point(15, 15),
-                Size = new Size(635, 230)
-            };
-
-            chkScheduler = new CheckBox
-            {
-                Text = "Включить тихое автоматическое обновление hosts (без всплывающих окон)",
-                Location = new Point(20, 35),
-                AutoSize = true
-            };
-
-            Label lblFreq = new Label { Text = "Частота обновления:", Location = new Point(20, 75), AutoSize = true };
-            cboInterval = new ComboBox
-            {
-                Location = new Point(170, 72),
-                Size = new Size(250, 23),
-                DropDownStyle = ComboBoxStyle.DropDownList
-            };
-            cboInterval.Items.Add("Каждые 6 часов");
-            cboInterval.Items.Add("Каждые 12 часов");
-            cboInterval.Items.Add("Раз в день (в 09:00)");
-            cboInterval.Items.Add("При каждом входе в Windows");
-            cboInterval.SelectedIndex = 2;
-
-            btnSaveScheduler = new Button
-            {
-                Text = "💾 Сохранить настройки автообновления",
-                Location = new Point(20, 120),
-                Size = new Size(320, 35),
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
-            };
-            btnSaveScheduler.Click += BtnSaveScheduler_Click;
-
-            lblSchedulerInfo = new Label
-            {
-                Text = "ℹ️ При тихом обновлении утилита проверяет хэш файла на сервере. Если изменений нет — hosts файл не перезаписывается. Все изменения вносятся строго в изолированные блоки.",
-                Location = new Point(20, 170),
-                Size = new Size(590, 50),
-                ForeColor = Color.Gray
-            };
-
-            gbSched.Controls.Add(chkScheduler);
-            gbSched.Controls.Add(lblFreq);
-            gbSched.Controls.Add(cboInterval);
-            gbSched.Controls.Add(btnSaveScheduler);
-            gbSched.Controls.Add(lblSchedulerInfo);
-
-            tabScheduler.Controls.Add(gbSched);
         }
 
         private void LoadConfigToUI()
@@ -770,15 +811,7 @@ namespace HostsManager
 
             lblGeoHideInfo.Text = "Статус: Обновлено: " + (string.IsNullOrEmpty(config.GeoHideLastUpdated) ? "Никогда" : config.GeoHideLastUpdated);
 
-            // Custom Providers
             RefreshCustomProvidersList();
-
-            // Scheduler
-            chkScheduler.Checked = config.SchedulerEnabled;
-            if (config.SchedulerInterval == "6h") cboInterval.SelectedIndex = 0;
-            else if (config.SchedulerInterval == "12h") cboInterval.SelectedIndex = 1;
-            else if (config.SchedulerInterval == "logon") cboInterval.SelectedIndex = 3;
-            else cboInterval.SelectedIndex = 2;
         }
 
         private void RefreshCustomProvidersList()
@@ -913,76 +946,56 @@ namespace HostsManager
             }
             Program.SaveConfig(config);
 
-            lblProviderStatus.Text = "Синхронизация правил... Пожалуйста, подождите.";
+            btnUpdateNow.Enabled = false;
+            lblProviderStatus.Text = "⏳ Синхронизация правил... Пожалуйста, подождите.";
             lblProviderStatus.ForeColor = Color.Blue;
-            Application.DoEvents();
 
-            bool res = Program.UpdateHostsRoutine(false);
-            config = Program.LoadConfig();
-            LoadConfigToUI();
+            // Запускаем синхронизацию в фоновом потоке, чтобы интерфейс НИКОГДА не зависал!
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                bool res = Program.UpdateHostsRoutine(false);
 
-            if (res)
-            {
-                lblProviderStatus.Text = "✅ Hosts успешно синхронизирован! DNS-кэш Windows сброшен (" + DateTime.Now.ToString("HH:mm:ss") + ")";
-                lblProviderStatus.ForeColor = Color.DarkGreen;
-                MessageBox.Show("Файл hosts успешно обновлен!\nDNS-кэш Windows автоматически сброшен.", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            else
-            {
-                lblProviderStatus.Text = "⚠️ Ошибка обновления hosts (возможно, отменено подтверждение UAC или нет сети).";
-                lblProviderStatus.ForeColor = Color.Red;
-            }
+                this.BeginInvoke((Action)(() =>
+                {
+                    config = Program.LoadConfig();
+                    LoadConfigToUI();
+                    btnUpdateNow.Enabled = true;
+
+                    if (res)
+                    {
+                        lblProviderStatus.Text = "✅ Hosts успешно синхронизирован! DNS-кэш сброшен (" + DateTime.Now.ToString("HH:mm:ss") + ")";
+                        lblProviderStatus.ForeColor = Color.DarkGreen;
+                        MessageBox.Show("Файл hosts успешно обновлен!\nDNS-кэш Windows автоматически сброшен.", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        lblProviderStatus.Text = "⚠️ Ошибка обновления (отменено в окне UAC или нет сети).";
+                        lblProviderStatus.ForeColor = Color.Red;
+                    }
+                }));
+            });
         }
 
-        private void BtnSaveScheduler_Click(object sender, EventArgs e)
+        private void BtnAutoCreateTask_Click(object sender, EventArgs e)
         {
-            config.SchedulerEnabled = chkScheduler.Checked;
-            int sel = cboInterval.SelectedIndex;
-            if (sel == 0) config.SchedulerInterval = "6h";
-            else if (sel == 1) config.SchedulerInterval = "12h";
-            else if (sel == 3) config.SchedulerInterval = "logon";
-            else config.SchedulerInterval = "daily";
-
-            Program.SaveConfig(config);
-
             try
             {
                 string taskName = "HostsManagerAutoUpdate";
-                if (!chkScheduler.Checked)
-                {
-                    Process pDel = Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "schtasks.exe",
-                        Arguments = "/delete /tn \"" + taskName + "\" /f",
-                        CreateNoWindow = true,
-                        UseShellExecute = false
-                    });
-                    if (pDel != null) pDel.WaitForExit();
+                string exePath = Application.ExecutablePath;
 
-                    MessageBox.Show("Автообновление выключено. Задача в Планировщике Windows удалена.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                else
-                {
-                    string exePath = Application.ExecutablePath;
-                    string scheduleArg = "/sc daily /st 09:00";
-                    if (config.SchedulerInterval == "6h") scheduleArg = "/sc minute /mo 360";
-                    else if (config.SchedulerInterval == "12h") scheduleArg = "/sc minute /mo 720";
-                    else if (config.SchedulerInterval == "logon") scheduleArg = "/sc onlogon";
+                ProcessStartInfo psi = new ProcessStartInfo();
+                psi.FileName = "schtasks.exe";
+                psi.Arguments = string.Format("/create /tn \"{0}\" /tr \"\\\"{1}\\\" /update-silent\" /sc daily /st 09:00 /rl highest /f", taskName, exePath);
+                psi.Verb = "runas";
+                psi.UseShellExecute = true;
+                Process p = Process.Start(psi);
+                if (p != null) p.WaitForExit();
 
-                    ProcessStartInfo psi = new ProcessStartInfo();
-                    psi.FileName = "schtasks.exe";
-                    psi.Arguments = string.Format("/create /tn \"{0}\" /tr \"\\\"{1}\\\" /update-silent\" {2} /rl highest /f", taskName, exePath, scheduleArg);
-                    psi.Verb = "runas";
-                    psi.UseShellExecute = true;
-                    Process p = Process.Start(psi);
-                    if (p != null) p.WaitForExit();
-
-                    MessageBox.Show("Автообновление включено!\nЗадача успешно зарегистрирована в Планировщике Windows с наивысшими правами.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
+                MessageBox.Show("Задача успешно зарегистрирована в Планировщике Windows!\nВремя запуска: каждый день в 09:00.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Ошибка настройки планировщика: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Ошибка создания задачи: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
