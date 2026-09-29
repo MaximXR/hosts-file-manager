@@ -54,7 +54,7 @@ namespace HostsManager
             GeoHideLastHash = "";
             GeoHideLastUpdated = "";
 
-            CustomProviders = new List<CustomProviderConfig>();
+            CustomProviders = Program.GetDefaultPresets();
         }
     }
 
@@ -62,6 +62,45 @@ namespace HostsManager
     {
         [DllImport("dnsapi.dll", EntryPoint = "DnsFlushResolverCache")]
         public static extern int DnsFlushResolverCache();
+
+        public static List<CustomProviderConfig> GetDefaultPresets()
+        {
+            return new List<CustomProviderConfig>
+            {
+                new CustomProviderConfig
+                {
+                    Name = "GitHub520 (Ускорение доступа к GitHub)",
+                    Url = "https://raw.hellogithub.com/hosts",
+                    Enabled = false,
+                    LastHash = "",
+                    LastUpdated = ""
+                },
+                new CustomProviderConfig
+                {
+                    Name = "Windows SpyBlocker (Телеметрия)",
+                    Url = "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt",
+                    Enabled = false,
+                    LastHash = "",
+                    LastUpdated = ""
+                },
+                new CustomProviderConfig
+                {
+                    Name = "AdAway (Блокировка рекламы)",
+                    Url = "https://adaway.org/hosts.txt",
+                    Enabled = false,
+                    LastHash = "",
+                    LastUpdated = ""
+                },
+                new CustomProviderConfig
+                {
+                    Name = "StevenBlack (Анти-реклама и фишинг)",
+                    Url = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+                    Enabled = false,
+                    LastHash = "",
+                    LastUpdated = ""
+                }
+            };
+        }
 
         public static string ConfigPath
         {
@@ -88,11 +127,22 @@ namespace HostsManager
                 {
                     string json = File.ReadAllText(ConfigPath, Encoding.UTF8);
                     JavaScriptSerializer serializer = new JavaScriptSerializer();
-                    return serializer.Deserialize<AppConfig>(json) ?? new AppConfig();
+                    AppConfig cfg = serializer.Deserialize<AppConfig>(json);
+                    if (cfg != null)
+                    {
+                        if (cfg.CustomProviders == null || cfg.CustomProviders.Count == 0)
+                        {
+                            cfg.CustomProviders = GetDefaultPresets();
+                            SaveConfig(cfg);
+                        }
+                        return cfg;
+                    }
                 }
             }
             catch { }
-            return new AppConfig();
+            AppConfig def = new AppConfig();
+            def.CustomProviders = GetDefaultPresets();
+            return def;
         }
 
         public static void SaveConfig(AppConfig config)
@@ -229,7 +279,7 @@ namespace HostsManager
                         }
                     }
 
-                    // 2. Обработка дополнительных пользовательских провайдеров
+                    // 2. Обработка дополнительных независимых провайдеров
                     if (config.CustomProviders != null)
                     {
                         foreach (var provider in config.CustomProviders)
@@ -363,7 +413,7 @@ namespace HostsManager
         private Button btnCreateShortcut;
         private Label lblShortcutHint;
 
-        // Providers tab (GeoHide mutually exclusive regions + Custom Providers)
+        // Providers tab
         private CheckBox chkGeoHide;
         private RadioButton rbGeoRU;
         private RadioButton rbGeoEU;
@@ -373,6 +423,7 @@ namespace HostsManager
         private ListView lvCustomProviders;
         private Button btnAddCustom;
         private Button btnRemoveCustom;
+        private Button btnResetPresets;
         private Button btnUpdateNow;
         private Label lblProviderStatus;
 
@@ -394,7 +445,7 @@ namespace HostsManager
         private void InitUI()
         {
             this.Text = "Hosts Manager & Shortcut Creator";
-            this.Size = new Size(660, 560);
+            this.Size = new Size(680, 580);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -405,7 +456,7 @@ namespace HostsManager
             InitShortcutsTab();
             tabs.TabPages.Add(tabShortcuts);
 
-            tabProviders = new TabPage("🌐 Подписки hosts (GeoHide)");
+            tabProviders = new TabPage("🌐 Подписки hosts");
             InitProvidersTab();
             tabs.TabPages.Add(tabProviders);
 
@@ -422,7 +473,7 @@ namespace HostsManager
             {
                 Text = "В каком редакторе открывать по клику",
                 Location = new Point(15, 15),
-                Size = new Size(615, 175)
+                Size = new Size(635, 175)
             };
 
             rbOpenWith = new RadioButton { Text = "Стандартное окно Windows «Открыть с помощью...» (выбор редактора)", Location = new Point(20, 25), AutoSize = true, Checked = true };
@@ -431,8 +482,8 @@ namespace HostsManager
             rbNotepad = new RadioButton { Text = "Системный Блокнот (всегда с правами администратора)", Location = new Point(20, 100), AutoSize = true };
             rbCustom = new RadioButton { Text = "Другой редактор:", Location = new Point(20, 125), AutoSize = true };
 
-            txtCustomPath = new TextBox { Location = new Point(160, 124), Size = new Size(350, 23), Enabled = false };
-            btnBrowseCustom = new Button { Text = "Обзор...", Location = new Point(520, 123), Size = new Size(80, 25), Enabled = false };
+            txtCustomPath = new TextBox { Location = new Point(160, 124), Size = new Size(370, 23), Enabled = false };
+            btnBrowseCustom = new Button { Text = "Обзор...", Location = new Point(540, 123), Size = new Size(80, 25), Enabled = false };
 
             rbCustom.CheckedChanged += (s, e) =>
             {
@@ -464,14 +515,14 @@ namespace HostsManager
             {
                 Text = "Параметры ярлыка",
                 Location = new Point(15, 200),
-                Size = new Size(615, 140)
+                Size = new Size(635, 140)
             };
 
             Label lblName = new Label { Text = "Имя ярлыка:", Location = new Point(20, 30), AutoSize = true };
             txtShortcutName = new TextBox { Text = "Hosts", Location = new Point(140, 27), Size = new Size(200, 23) };
 
             Label lblIcon = new Label { Text = "Иконка:", Location = new Point(20, 65), AutoSize = true };
-            cboIcon = new ComboBox { Location = new Point(140, 62), Size = new Size(450, 23), DropDownStyle = ComboBoxStyle.DropDownList };
+            cboIcon = new ComboBox { Location = new Point(140, 62), Size = new Size(470, 23), DropDownStyle = ComboBoxStyle.DropDownList };
             cboIcon.Items.Add("Системная иконка файла без расширения (shell32.dll, 0) [Рекомендуется]");
             cboIcon.Items.Add("Иконка Блокнота (notepad.exe, 0)");
             cboIcon.Items.Add("Иконка Notepad++ (при наличии)");
@@ -489,7 +540,7 @@ namespace HostsManager
             {
                 Text = "✨ Создать ярлык на Рабочем столе",
                 Location = new Point(15, 355),
-                Size = new Size(615, 42),
+                Size = new Size(635, 42),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 245, 255)
             };
@@ -499,7 +550,7 @@ namespace HostsManager
             {
                 Text = "💡 Подсказка: После создания нажмите правой кнопкой по ярлыку на Рабочем столе и выберите «Закрепить на панели задач».",
                 Location = new Point(15, 410),
-                Size = new Size(615, 35),
+                Size = new Size(635, 35),
                 ForeColor = Color.Gray
             };
 
@@ -511,37 +562,37 @@ namespace HostsManager
 
         private void InitProvidersTab()
         {
-            // Блок 1: GeoHide (выбор одного региона)
+            // Блок 1: GeoHide
             GroupBox gbGeo = new GroupBox
             {
                 Text = "Сервис GeoHide (Антиблокировка / DNS Прокси)",
-                Location = new Point(15, 12),
-                Size = new Size(615, 140)
+                Location = new Point(15, 10),
+                Size = new Size(635, 135)
             };
 
             chkGeoHide = new CheckBox
             {
                 Text = "Включить GeoHide (автоматически обновлять правила обхода)",
-                Location = new Point(15, 25),
+                Location = new Point(15, 22),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
 
             Label lblRegionTitle = new Label
             {
-                Text = "Выберите серверный регион (выбирается один, домены маршрутизируются через выбранные серверы):",
-                Location = new Point(15, 55),
+                Text = "Выберите серверный регион (строго один, домены маршрутизируются через выбранные серверы):",
+                Location = new Point(15, 50),
                 AutoSize = true
             };
 
-            rbGeoRU = new RadioButton { Text = "Россия (RU) — наименьшая задержка [Рекомендуется]", Location = new Point(30, 80), AutoSize = true, Checked = true };
-            rbGeoEU = new RadioButton { Text = "Европа (EU)", Location = new Point(340, 80), AutoSize = true };
-            rbGeoUS = new RadioButton { Text = "США (US)", Location = new Point(460, 80), AutoSize = true };
+            rbGeoRU = new RadioButton { Text = "Россия (RU) — наименьшая задержка [Рекомендуется]", Location = new Point(30, 75), AutoSize = true, Checked = true };
+            rbGeoEU = new RadioButton { Text = "Европа (EU)", Location = new Point(350, 75), AutoSize = true };
+            rbGeoUS = new RadioButton { Text = "США (US)", Location = new Point(480, 75), AutoSize = true };
 
             lblGeoHideInfo = new Label
             {
                 Text = "Статус: Обновлено: " + (string.IsNullOrEmpty(config.GeoHideLastUpdated) ? "Никогда" : config.GeoHideLastUpdated),
-                Location = new Point(15, 110),
+                Location = new Point(15, 105),
                 AutoSize = true,
                 ForeColor = Color.DarkSlateGray
             };
@@ -560,44 +611,65 @@ namespace HostsManager
             gbGeo.Controls.Add(rbGeoUS);
             gbGeo.Controls.Add(lblGeoHideInfo);
 
-            // Блок 2: Дополнительные независимые источники (AdBlock, корпоративные и т.д.)
+            // Блок 2: Дополнительные независимые источники
             GroupBox gbCustom = new GroupBox
             {
-                Text = "Дополнительные независимые источники (AdBlock, свои списки)",
-                Location = new Point(15, 160),
-                Size = new Size(615, 235)
+                Text = "Каталог популярных подписок и свои источники (отметьте галочками нужные):",
+                Location = new Point(15, 155),
+                Size = new Size(635, 250)
             };
 
             lvCustomProviders = new ListView
             {
                 Location = new Point(15, 25),
-                Size = new Size(585, 125),
+                Size = new Size(605, 145),
                 View = View.Details,
                 CheckBoxes = true,
                 FullRowSelect = true,
                 GridLines = true
             };
             lvCustomProviders.Columns.Add("Вкл", 50);
-            lvCustomProviders.Columns.Add("Имя", 160);
-            lvCustomProviders.Columns.Add("URL источника", 250);
+            lvCustomProviders.Columns.Add("Название", 230);
+            lvCustomProviders.Columns.Add("URL источника", 200);
             lvCustomProviders.Columns.Add("Обновлено", 115);
 
-            btnAddCustom = new Button { Text = "➕ Добавить URL...", Location = new Point(15, 160), Size = new Size(130, 28) };
+            btnAddCustom = new Button { Text = "➕ Свой URL...", Location = new Point(15, 180), Size = new Size(110, 28) };
             btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(155, 160), Size = new Size(95, 28) };
+            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(135, 180), Size = new Size(90, 28) };
             btnRemoveCustom.Click += BtnRemoveCustom_Click;
+
+            btnResetPresets = new Button { Text = "🔄 Восстановить каталог пресетов", Location = new Point(390, 180), Size = new Size(230, 28) };
+            btnResetPresets.Click += (s, e) =>
+            {
+                if (MessageBox.Show("Сбросить список к популярным встроенным пресетам?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    config.CustomProviders = Program.GetDefaultPresets();
+                    Program.SaveConfig(config);
+                    RefreshCustomProvidersList();
+                }
+            };
+
+            Label lblCustomHint = new Label
+            {
+                Text = "💡 Доступны пресеты: GitHub520 (ускорение GitHub), Windows SpyBlocker (анти-слежка), AdAway и StevenBlack (блокировка рекламы).",
+                Location = new Point(15, 215),
+                Size = new Size(605, 25),
+                ForeColor = Color.DarkSlateBlue
+            };
 
             gbCustom.Controls.Add(lvCustomProviders);
             gbCustom.Controls.Add(btnAddCustom);
             gbCustom.Controls.Add(btnRemoveCustom);
+            gbCustom.Controls.Add(btnResetPresets);
+            gbCustom.Controls.Add(lblCustomHint);
 
             // Кнопка синхронизации
             btnUpdateNow = new Button
             {
                 Text = "🔄 Синхронизировать hosts сейчас",
-                Location = new Point(15, 405),
-                Size = new Size(615, 38),
+                Location = new Point(15, 415),
+                Size = new Size(635, 40),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240)
             };
@@ -605,9 +677,9 @@ namespace HostsManager
 
             lblProviderStatus = new Label
             {
-                Text = "Личные ручные записи в hosts надежно изолированы и не затрагиваются.",
-                Location = new Point(15, 455),
-                Size = new Size(615, 30),
+                Text = "Личные ручные записи в hosts изолированы и надежно защищены от перезаписи.",
+                Location = new Point(15, 465),
+                Size = new Size(635, 30),
                 ForeColor = Color.Gray
             };
 
@@ -621,9 +693,9 @@ namespace HostsManager
         {
             GroupBox gbSched = new GroupBox
             {
-                Text = "Фоновое тихое обновление через Планировщик Windows",
+                Text = "Фоновое тихое автообновление через Планировщик Windows",
                 Location = new Point(15, 15),
-                Size = new Size(615, 230)
+                Size = new Size(635, 230)
             };
 
             chkScheduler = new CheckBox
@@ -659,7 +731,7 @@ namespace HostsManager
             {
                 Text = "ℹ️ При тихом обновлении утилита проверяет хэш файла на сервере. Если изменений нет — hosts файл не перезаписывается. Все изменения вносятся строго в изолированные блоки.",
                 Location = new Point(20, 170),
-                Size = new Size(570, 50),
+                Size = new Size(590, 50),
                 ForeColor = Color.Gray
             };
 
@@ -712,7 +784,7 @@ namespace HostsManager
         private void RefreshCustomProvidersList()
         {
             lvCustomProviders.Items.Clear();
-            if (config.CustomProviders == null) config.CustomProviders = new List<CustomProviderConfig>();
+            if (config.CustomProviders == null) config.CustomProviders = Program.GetDefaultPresets();
 
             foreach (var p in config.CustomProviders)
             {
