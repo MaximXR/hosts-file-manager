@@ -13,7 +13,7 @@ using System.Windows.Forms;
 
 namespace HostsManager
 {
-    public class ProviderConfig
+    public class CustomProviderConfig
     {
         public string Name { get; set; }
         public string Url { get; set; }
@@ -30,7 +30,15 @@ namespace HostsManager
         public bool BackupBeforeUpdate { get; set; }
         public bool SchedulerEnabled { get; set; }
         public string SchedulerInterval { get; set; }
-        public List<ProviderConfig> Providers { get; set; }
+
+        // GeoHide settings (выбор одного взаимоисключающего региона)
+        public bool GeoHideEnabled { get; set; }
+        public string GeoHideRegion { get; set; } // "ru", "eu", "us"
+        public string GeoHideLastHash { get; set; }
+        public string GeoHideLastUpdated { get; set; }
+
+        // Дополнительные независимые источники (AdBlock, корпоративные и т.д.)
+        public List<CustomProviderConfig> CustomProviders { get; set; }
 
         public AppConfig()
         {
@@ -40,33 +48,13 @@ namespace HostsManager
             BackupBeforeUpdate = true;
             SchedulerEnabled = false;
             SchedulerInterval = "daily";
-            Providers = new List<ProviderConfig>
-            {
-                new ProviderConfig
-                {
-                    Name = "GeoHide (RU)",
-                    Url = "https://geohide.ru/hosts",
-                    Enabled = true,
-                    LastHash = "",
-                    LastUpdated = ""
-                },
-                new ProviderConfig
-                {
-                    Name = "GeoHide (EU)",
-                    Url = "https://geohide.ru/eu/hosts",
-                    Enabled = false,
-                    LastHash = "",
-                    LastUpdated = ""
-                },
-                new ProviderConfig
-                {
-                    Name = "GeoHide (US)",
-                    Url = "https://geohide.ru/us/hosts",
-                    Enabled = false,
-                    LastHash = "",
-                    LastUpdated = ""
-                }
-            };
+
+            GeoHideEnabled = true;
+            GeoHideRegion = "ru";
+            GeoHideLastHash = "";
+            GeoHideLastUpdated = "";
+
+            CustomProviders = new List<CustomProviderConfig>();
         }
     }
 
@@ -151,7 +139,6 @@ namespace HostsManager
             AppConfig config = LoadConfig();
             if (!IsAdmin())
             {
-                // Запуск с повышением прав
                 try
                 {
                     ProcessStartInfo psi = new ProcessStartInfo();
@@ -160,8 +147,8 @@ namespace HostsManager
                     psi.Verb = "runas";
                     psi.UseShellExecute = true;
                     Process p = Process.Start(psi);
-                    p.WaitForExit();
-                    return p.ExitCode == 0;
+                    if (p != null) p.WaitForExit();
+                    return p != null && p.ExitCode == 0;
                 }
                 catch
                 {
@@ -173,7 +160,6 @@ namespace HostsManager
             {
                 string hostsContent = File.Exists(HostsPath) ? File.ReadAllText(HostsPath, Encoding.UTF8) : "";
 
-                // Бэкап перед записью
                 if (config.BackupBeforeUpdate && File.Exists(HostsPath))
                 {
                     string backupPath = HostsPath + ".bak";
@@ -186,64 +172,119 @@ namespace HostsManager
                     client.Encoding = Encoding.UTF8;
                     client.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) HostsManager";
 
-                    foreach (var provider in config.Providers)
+                    // 1. Обработка GeoHide (один выбранный регион)
+                    string geoBlockStart = "# === BEGIN HOSTS-MANAGER MANAGED BLOCK [GeoHide] ===";
+                    string geoBlockEnd = "# === END HOSTS-MANAGER MANAGED BLOCK [GeoHide] ===";
+
+                    if (!config.GeoHideEnabled)
                     {
-                        string blockStartMarker = string.Format("# === BEGIN HOSTS-MANAGER MANAGED BLOCK [{0}] ===", provider.Name);
-                        string blockEndMarker = string.Format("# === END HOSTS-MANAGER MANAGED BLOCK [{0}] ===", provider.Name);
-
-                        if (!provider.Enabled)
+                        if (hostsContent.Contains(geoBlockStart))
                         {
-                            // Удаляем блок, если он был
-                            if (hostsContent.Contains(blockStartMarker))
-                            {
-                                hostsContent = RemoveBlock(hostsContent, blockStartMarker, blockEndMarker);
-                                hasAnyChanges = true;
-                                provider.LastHash = "";
-                                provider.LastUpdated = "Отключен";
-                            }
-                            continue;
+                            hostsContent = RemoveBlock(hostsContent, geoBlockStart, geoBlockEnd);
+                            hasAnyChanges = true;
+                            config.GeoHideLastHash = "";
+                            config.GeoHideLastUpdated = "Отключен";
                         }
+                    }
+                    else
+                    {
+                        string region = string.IsNullOrEmpty(config.GeoHideRegion) ? "ru" : config.GeoHideRegion.ToLowerInvariant();
+                        string geoUrl = region == "ru" ? "https://geohide.ru/hosts" : ("https://geohide.ru/" + region + "/hosts");
 
-                        // Скачиваем данные
                         try
                         {
-                            string downloadedData = client.DownloadString(provider.Url);
+                            string downloadedData = client.DownloadString(geoUrl);
                             string newHash = ComputeHash(downloadedData);
 
-                            if (provider.LastHash == newHash && hostsContent.Contains(blockStartMarker))
+                            if (config.GeoHideLastHash != newHash || !hostsContent.Contains(geoBlockStart))
                             {
-                                // Изменений нет
-                                continue;
-                            }
+                                StringBuilder newBlock = new StringBuilder();
+                                newBlock.AppendLine(geoBlockStart);
+                                newBlock.AppendLine(string.Format("# Source: {0} (Region: {1})", geoUrl, region.ToUpperInvariant()));
+                                newBlock.AppendLine(string.Format("# Updated: {0}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")));
+                                newBlock.AppendLine(downloadedData.Trim());
+                                newBlock.AppendLine(geoBlockEnd);
 
-                            // Обновляем блок
-                            StringBuilder newBlock = new StringBuilder();
-                            newBlock.AppendLine(blockStartMarker);
-                            newBlock.AppendLine(string.Format("# Source: {0}", provider.Url));
-                            newBlock.AppendLine(string.Format("# Updated: {0}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")));
-                            newBlock.AppendLine(downloadedData.Trim());
-                            newBlock.AppendLine(blockEndMarker);
-
-                            if (hostsContent.Contains(blockStartMarker))
-                            {
-                                hostsContent = ReplaceBlock(hostsContent, blockStartMarker, blockEndMarker, newBlock.ToString());
-                            }
-                            else
-                            {
-                                if (hostsContent.Length > 0 && !hostsContent.EndsWith(Environment.NewLine))
+                                if (hostsContent.Contains(geoBlockStart))
                                 {
-                                    hostsContent += Environment.NewLine;
+                                    hostsContent = ReplaceBlock(hostsContent, geoBlockStart, geoBlockEnd, newBlock.ToString());
                                 }
-                                hostsContent += Environment.NewLine + newBlock.ToString();
-                            }
+                                else
+                                {
+                                    if (hostsContent.Length > 0 && !hostsContent.EndsWith(Environment.NewLine))
+                                    {
+                                        hostsContent += Environment.NewLine;
+                                    }
+                                    hostsContent += Environment.NewLine + newBlock.ToString();
+                                }
 
-                            provider.LastHash = newHash;
-                            provider.LastUpdated = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
-                            hasAnyChanges = true;
+                                config.GeoHideLastHash = newHash;
+                                config.GeoHideLastUpdated = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
+                                hasAnyChanges = true;
+                            }
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine("Ошибка скачивания " + provider.Name + ": " + ex.Message);
+                            Debug.WriteLine("Ошибка скачивания GeoHide: " + ex.Message);
+                        }
+                    }
+
+                    // 2. Обработка дополнительных пользовательских провайдеров
+                    if (config.CustomProviders != null)
+                    {
+                        foreach (var provider in config.CustomProviders)
+                        {
+                            string blockStart = string.Format("# === BEGIN HOSTS-MANAGER MANAGED BLOCK [{0}] ===", provider.Name);
+                            string blockEnd = string.Format("# === END HOSTS-MANAGER MANAGED BLOCK [{0}] ===", provider.Name);
+
+                            if (!provider.Enabled)
+                            {
+                                if (hostsContent.Contains(blockStart))
+                                {
+                                    hostsContent = RemoveBlock(hostsContent, blockStart, blockEnd);
+                                    hasAnyChanges = true;
+                                    provider.LastHash = "";
+                                    provider.LastUpdated = "Отключен";
+                                }
+                                continue;
+                            }
+
+                            try
+                            {
+                                string downloadedData = client.DownloadString(provider.Url);
+                                string newHash = ComputeHash(downloadedData);
+
+                                if (provider.LastHash != newHash || !hostsContent.Contains(blockStart))
+                                {
+                                    StringBuilder newBlock = new StringBuilder();
+                                    newBlock.AppendLine(blockStart);
+                                    newBlock.AppendLine(string.Format("# Source: {0}", provider.Url));
+                                    newBlock.AppendLine(string.Format("# Updated: {0}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")));
+                                    newBlock.AppendLine(downloadedData.Trim());
+                                    newBlock.AppendLine(blockEnd);
+
+                                    if (hostsContent.Contains(blockStart))
+                                    {
+                                        hostsContent = ReplaceBlock(hostsContent, blockStart, blockEnd, newBlock.ToString());
+                                    }
+                                    else
+                                    {
+                                        if (hostsContent.Length > 0 && !hostsContent.EndsWith(Environment.NewLine))
+                                        {
+                                            hostsContent += Environment.NewLine;
+                                        }
+                                        hostsContent += Environment.NewLine + newBlock.ToString();
+                                    }
+
+                                    provider.LastHash = newHash;
+                                    provider.LastUpdated = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
+                                    hasAnyChanges = true;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine("Ошибка скачивания " + provider.Name + ": " + ex.Message);
+                            }
                         }
                     }
                 }
@@ -272,7 +313,6 @@ namespace HostsManager
             if (end < 0) return content;
             end += endMarker.Length;
 
-            // Удаляем перенос строки после маркера
             if (end < content.Length && content[end] == '\r') end++;
             if (end < content.Length && content[end] == '\n') end++;
 
@@ -323,10 +363,16 @@ namespace HostsManager
         private Button btnCreateShortcut;
         private Label lblShortcutHint;
 
-        // Providers tab
-        private ListView lvProviders;
-        private Button btnAddProvider;
-        private Button btnRemoveProvider;
+        // Providers tab (GeoHide mutually exclusive regions + Custom Providers)
+        private CheckBox chkGeoHide;
+        private RadioButton rbGeoRU;
+        private RadioButton rbGeoEU;
+        private RadioButton rbGeoUS;
+        private Label lblGeoHideInfo;
+
+        private ListView lvCustomProviders;
+        private Button btnAddCustom;
+        private Button btnRemoveCustom;
         private Button btnUpdateNow;
         private Label lblProviderStatus;
 
@@ -348,24 +394,21 @@ namespace HostsManager
         private void InitUI()
         {
             this.Text = "Hosts Manager & Shortcut Creator";
-            this.Size = new Size(640, 520);
+            this.Size = new Size(660, 560);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
 
             tabs = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9F) };
 
-            // Tab 1: Ярлыки
             tabShortcuts = new TabPage("🚀 Создать ярлык");
             InitShortcutsTab();
             tabs.TabPages.Add(tabShortcuts);
 
-            // Tab 2: Подписки
             tabProviders = new TabPage("🌐 Подписки hosts (GeoHide)");
             InitProvidersTab();
             tabs.TabPages.Add(tabProviders);
 
-            // Tab 3: Планировщик
             tabScheduler = new TabPage("⏱️ Автообновление");
             InitSchedulerTab();
             tabs.TabPages.Add(tabScheduler);
@@ -379,7 +422,7 @@ namespace HostsManager
             {
                 Text = "В каком редакторе открывать по клику",
                 Location = new Point(15, 15),
-                Size = new Size(595, 175)
+                Size = new Size(615, 175)
             };
 
             rbOpenWith = new RadioButton { Text = "Стандартное окно Windows «Открыть с помощью...» (выбор редактора)", Location = new Point(20, 25), AutoSize = true, Checked = true };
@@ -388,8 +431,8 @@ namespace HostsManager
             rbNotepad = new RadioButton { Text = "Системный Блокнот (всегда с правами администратора)", Location = new Point(20, 100), AutoSize = true };
             rbCustom = new RadioButton { Text = "Другой редактор:", Location = new Point(20, 125), AutoSize = true };
 
-            txtCustomPath = new TextBox { Location = new Point(160, 124), Size = new Size(330, 23), Enabled = false };
-            btnBrowseCustom = new Button { Text = "Обзор...", Location = new Point(500, 123), Size = new Size(80, 25), Enabled = false };
+            txtCustomPath = new TextBox { Location = new Point(160, 124), Size = new Size(350, 23), Enabled = false };
+            btnBrowseCustom = new Button { Text = "Обзор...", Location = new Point(520, 123), Size = new Size(80, 25), Enabled = false };
 
             rbCustom.CheckedChanged += (s, e) =>
             {
@@ -421,14 +464,14 @@ namespace HostsManager
             {
                 Text = "Параметры ярлыка",
                 Location = new Point(15, 200),
-                Size = new Size(595, 140)
+                Size = new Size(615, 140)
             };
 
             Label lblName = new Label { Text = "Имя ярлыка:", Location = new Point(20, 30), AutoSize = true };
             txtShortcutName = new TextBox { Text = "Hosts", Location = new Point(140, 27), Size = new Size(200, 23) };
 
             Label lblIcon = new Label { Text = "Иконка:", Location = new Point(20, 65), AutoSize = true };
-            cboIcon = new ComboBox { Location = new Point(140, 62), Size = new Size(430, 23), DropDownStyle = ComboBoxStyle.DropDownList };
+            cboIcon = new ComboBox { Location = new Point(140, 62), Size = new Size(450, 23), DropDownStyle = ComboBoxStyle.DropDownList };
             cboIcon.Items.Add("Системная иконка файла без расширения (shell32.dll, 0) [Рекомендуется]");
             cboIcon.Items.Add("Иконка Блокнота (notepad.exe, 0)");
             cboIcon.Items.Add("Иконка Notepad++ (при наличии)");
@@ -446,7 +489,7 @@ namespace HostsManager
             {
                 Text = "✨ Создать ярлык на Рабочем столе",
                 Location = new Point(15, 355),
-                Size = new Size(595, 42),
+                Size = new Size(615, 42),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 245, 255)
             };
@@ -454,9 +497,9 @@ namespace HostsManager
 
             lblShortcutHint = new Label
             {
-                Text = "💡 Подсказка: После создания просто нажмите правой кнопкой по ярлыку на Рабочем столе и выберите «Закрепить на панели задач».",
-                Location = new Point(15, 405),
-                Size = new Size(595, 35),
+                Text = "💡 Подсказка: После создания нажмите правой кнопкой по ярлыку на Рабочем столе и выберите «Закрепить на панели задач».",
+                Location = new Point(15, 410),
+                Size = new Size(615, 35),
                 ForeColor = Color.Gray
             };
 
@@ -468,54 +511,108 @@ namespace HostsManager
 
         private void InitProvidersTab()
         {
-            Label lblTitle = new Label
+            // Блок 1: GeoHide (выбор одного региона)
+            GroupBox gbGeo = new GroupBox
             {
-                Text = "Внешние источники правил hosts (автоматическое объединение с вашим файлом):",
+                Text = "Сервис GeoHide (Антиблокировка / DNS Прокси)",
                 Location = new Point(15, 12),
+                Size = new Size(615, 140)
+            };
+
+            chkGeoHide = new CheckBox
+            {
+                Text = "Включить GeoHide (автоматически обновлять правила обхода)",
+                Location = new Point(15, 25),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+            };
+
+            Label lblRegionTitle = new Label
+            {
+                Text = "Выберите серверный регион (выбирается один, домены маршрутизируются через выбранные серверы):",
+                Location = new Point(15, 55),
                 AutoSize = true
             };
 
-            lvProviders = new ListView
+            rbGeoRU = new RadioButton { Text = "Россия (RU) — наименьшая задержка [Рекомендуется]", Location = new Point(30, 80), AutoSize = true, Checked = true };
+            rbGeoEU = new RadioButton { Text = "Европа (EU)", Location = new Point(340, 80), AutoSize = true };
+            rbGeoUS = new RadioButton { Text = "США (US)", Location = new Point(460, 80), AutoSize = true };
+
+            lblGeoHideInfo = new Label
             {
-                Location = new Point(15, 35),
-                Size = new Size(595, 260),
+                Text = "Статус: Обновлено: " + (string.IsNullOrEmpty(config.GeoHideLastUpdated) ? "Никогда" : config.GeoHideLastUpdated),
+                Location = new Point(15, 110),
+                AutoSize = true,
+                ForeColor = Color.DarkSlateGray
+            };
+
+            chkGeoHide.CheckedChanged += (s, e) =>
+            {
+                rbGeoRU.Enabled = chkGeoHide.Checked;
+                rbGeoEU.Enabled = chkGeoHide.Checked;
+                rbGeoUS.Enabled = chkGeoHide.Checked;
+            };
+
+            gbGeo.Controls.Add(chkGeoHide);
+            gbGeo.Controls.Add(lblRegionTitle);
+            gbGeo.Controls.Add(rbGeoRU);
+            gbGeo.Controls.Add(rbGeoEU);
+            gbGeo.Controls.Add(rbGeoUS);
+            gbGeo.Controls.Add(lblGeoHideInfo);
+
+            // Блок 2: Дополнительные независимые источники (AdBlock, корпоративные и т.д.)
+            GroupBox gbCustom = new GroupBox
+            {
+                Text = "Дополнительные независимые источники (AdBlock, свои списки)",
+                Location = new Point(15, 160),
+                Size = new Size(615, 235)
+            };
+
+            lvCustomProviders = new ListView
+            {
+                Location = new Point(15, 25),
+                Size = new Size(585, 125),
                 View = View.Details,
                 CheckBoxes = true,
                 FullRowSelect = true,
                 GridLines = true
             };
-            lvProviders.Columns.Add("Вкл", 50);
-            lvProviders.Columns.Add("Имя провайдера", 160);
-            lvProviders.Columns.Add("URL источника", 250);
-            lvProviders.Columns.Add("Обновлено", 120);
+            lvCustomProviders.Columns.Add("Вкл", 50);
+            lvCustomProviders.Columns.Add("Имя", 160);
+            lvCustomProviders.Columns.Add("URL источника", 250);
+            lvCustomProviders.Columns.Add("Обновлено", 115);
 
-            btnAddProvider = new Button { Text = "➕ Добавить URL...", Location = new Point(15, 305), Size = new Size(130, 30) };
-            btnAddProvider.Click += BtnAddProvider_Click;
+            btnAddCustom = new Button { Text = "➕ Добавить URL...", Location = new Point(15, 160), Size = new Size(130, 28) };
+            btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnRemoveProvider = new Button { Text = "🗑️ Удалить", Location = new Point(155, 305), Size = new Size(100, 30) };
-            btnRemoveProvider.Click += BtnRemoveProvider_Click;
+            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(155, 160), Size = new Size(95, 28) };
+            btnRemoveCustom.Click += BtnRemoveCustom_Click;
 
+            gbCustom.Controls.Add(lvCustomProviders);
+            gbCustom.Controls.Add(btnAddCustom);
+            gbCustom.Controls.Add(btnRemoveCustom);
+
+            // Кнопка синхронизации
             btnUpdateNow = new Button
             {
                 Text = "🔄 Синхронизировать hosts сейчас",
-                Location = new Point(360, 305),
-                Size = new Size(250, 30),
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+                Location = new Point(15, 405),
+                Size = new Size(615, 38),
+                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                BackColor = Color.FromArgb(235, 255, 240)
             };
             btnUpdateNow.Click += BtnUpdateNow_Click;
 
             lblProviderStatus = new Label
             {
-                Text = "Статус: Готов к синхронизации. Ваши личные записи в hosts не затрагиваются.",
-                Location = new Point(15, 350),
-                Size = new Size(595, 40),
-                ForeColor = Color.DarkSlateGray
+                Text = "Личные ручные записи в hosts надежно изолированы и не затрагиваются.",
+                Location = new Point(15, 455),
+                Size = new Size(615, 30),
+                ForeColor = Color.Gray
             };
 
-            tabProviders.Controls.Add(lblTitle);
-            tabProviders.Controls.Add(lvProviders);
-            tabProviders.Controls.Add(btnAddProvider);
-            tabProviders.Controls.Add(btnRemoveProvider);
+            tabProviders.Controls.Add(gbGeo);
+            tabProviders.Controls.Add(gbCustom);
             tabProviders.Controls.Add(btnUpdateNow);
             tabProviders.Controls.Add(lblProviderStatus);
         }
@@ -526,7 +623,7 @@ namespace HostsManager
             {
                 Text = "Фоновое тихое обновление через Планировщик Windows",
                 Location = new Point(15, 15),
-                Size = new Size(595, 230)
+                Size = new Size(615, 230)
             };
 
             chkScheduler = new CheckBox
@@ -553,16 +650,16 @@ namespace HostsManager
             {
                 Text = "💾 Сохранить настройки автообновления",
                 Location = new Point(20, 120),
-                Size = new Size(300, 35),
+                Size = new Size(320, 35),
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
             btnSaveScheduler.Click += BtnSaveScheduler_Click;
 
             lblSchedulerInfo = new Label
             {
-                Text = "ℹ️ При обновлении утилита проверяет хэш файла на сервере. Если изменений нет — hosts файл не перезаписывается. Все изменения вносятся строго в изолированный блок.",
+                Text = "ℹ️ При тихом обновлении утилита проверяет хэш файла на сервере. Если изменений нет — hosts файл не перезаписывается. Все изменения вносятся строго в изолированные блоки.",
                 Location = new Point(20, 170),
-                Size = new Size(550, 50),
+                Size = new Size(570, 50),
                 ForeColor = Color.Gray
             };
 
@@ -577,7 +674,6 @@ namespace HostsManager
 
         private void LoadConfigToUI()
         {
-            // Radiobuttons
             if (config.PreferredEditor == "npp") rbNpp.Checked = true;
             else if (config.PreferredEditor == "code") rbCode.Checked = true;
             else if (config.PreferredEditor == "notepad") rbNotepad.Checked = true;
@@ -590,8 +686,20 @@ namespace HostsManager
 
             chkAdmin.Checked = config.AlwaysAdmin;
 
-            // Providers
-            RefreshProvidersList();
+            // GeoHide
+            chkGeoHide.Checked = config.GeoHideEnabled;
+            if (config.GeoHideRegion == "eu") rbGeoEU.Checked = true;
+            else if (config.GeoHideRegion == "us") rbGeoUS.Checked = true;
+            else rbGeoRU.Checked = true;
+
+            rbGeoRU.Enabled = chkGeoHide.Checked;
+            rbGeoEU.Enabled = chkGeoHide.Checked;
+            rbGeoUS.Enabled = chkGeoHide.Checked;
+
+            lblGeoHideInfo.Text = "Статус: Обновлено: " + (string.IsNullOrEmpty(config.GeoHideLastUpdated) ? "Никогда" : config.GeoHideLastUpdated);
+
+            // Custom Providers
+            RefreshCustomProvidersList();
 
             // Scheduler
             chkScheduler.Checked = config.SchedulerEnabled;
@@ -601,10 +709,12 @@ namespace HostsManager
             else cboInterval.SelectedIndex = 2;
         }
 
-        private void RefreshProvidersList()
+        private void RefreshCustomProvidersList()
         {
-            lvProviders.Items.Clear();
-            foreach (var p in config.Providers)
+            lvCustomProviders.Items.Clear();
+            if (config.CustomProviders == null) config.CustomProviders = new List<CustomProviderConfig>();
+
+            foreach (var p in config.CustomProviders)
             {
                 ListViewItem item = new ListViewItem("");
                 item.Checked = p.Enabled;
@@ -612,7 +722,7 @@ namespace HostsManager
                 item.SubItems.Add(p.Url);
                 item.SubItems.Add(string.IsNullOrEmpty(p.LastUpdated) ? "Никогда" : p.LastUpdated);
                 item.Tag = p;
-                lvProviders.Items.Add(item);
+                lvCustomProviders.Items.Add(item);
             }
         }
 
@@ -624,7 +734,6 @@ namespace HostsManager
                 string launcherPath = Path.Combine(baseDir, "HostsLauncher.exe");
                 if (!File.Exists(launcherPath))
                 {
-                    // Проверяем родительскую папку dist
                     launcherPath = Application.ExecutablePath;
                 }
 
@@ -668,15 +777,14 @@ namespace HostsManager
                 shortcut.Description = "Файл hosts";
                 shortcut.Save();
 
-                // Сохраняем в конфиг
                 config.PreferredEditor = rbNpp.Checked ? "npp" : (rbCode.Checked ? "code" : (rbNotepad.Checked ? "notepad" : (rbCustom.Checked ? "custom" : "openwith")));
                 config.CustomEditorPath = txtCustomPath.Text;
                 config.AlwaysAdmin = chkAdmin.Checked;
                 Program.SaveConfig(config);
 
                 MessageBox.Show(
-                    "Ярлык \"" + linkName + ".lnk\" успешно создан на вашем Рабочем столе!\n\n" +
-                    "Чтобы закрепить его в панели задач:\n" +
+                    "Ярлык \"" + linkName + ".lnk\" успешно создан на Рабочем столе!\n\n" +
+                    "Чтобы закрепить его на панели задач:\n" +
                     "Нажмите правой кнопкой мыши по созданному ярлыку -> «Закрепить на панели задач».",
                     "Готово",
                     MessageBoxButtons.OK,
@@ -688,15 +796,15 @@ namespace HostsManager
             }
         }
 
-        private void BtnAddProvider_Click(object sender, EventArgs e)
+        private void BtnAddCustom_Click(object sender, EventArgs e)
         {
-            string url = PromptDialog("Введите URL списка hosts (например, https://geohide.ru/hosts):", "Добавление провайдера");
+            string url = PromptDialog("Введите URL списка правил hosts:", "Добавление источника");
             if (string.IsNullOrEmpty(url)) return;
 
-            string name = PromptDialog("Введите краткое имя провайдера:", "Имя провайдера");
-            if (string.IsNullOrEmpty(name)) name = "Провайдер " + (config.Providers.Count + 1);
+            string name = PromptDialog("Введите краткое имя источника:", "Имя источника");
+            if (string.IsNullOrEmpty(name)) name = "Источник " + (config.CustomProviders.Count + 1);
 
-            config.Providers.Add(new ProviderConfig
+            config.CustomProviders.Add(new CustomProviderConfig
             {
                 Name = name,
                 Url = url,
@@ -705,49 +813,51 @@ namespace HostsManager
                 LastUpdated = ""
             });
             Program.SaveConfig(config);
-            RefreshProvidersList();
+            RefreshCustomProvidersList();
         }
 
-        private void BtnRemoveProvider_Click(object sender, EventArgs e)
+        private void BtnRemoveCustom_Click(object sender, EventArgs e)
         {
-            if (lvProviders.SelectedItems.Count == 0) return;
-            var item = lvProviders.SelectedItems[0];
-            var provider = item.Tag as ProviderConfig;
+            if (lvCustomProviders.SelectedItems.Count == 0) return;
+            var item = lvCustomProviders.SelectedItems[0];
+            var provider = item.Tag as CustomProviderConfig;
             if (provider != null)
             {
-                config.Providers.Remove(provider);
+                config.CustomProviders.Remove(provider);
                 Program.SaveConfig(config);
-                RefreshProvidersList();
+                RefreshCustomProvidersList();
             }
         }
 
         private void BtnUpdateNow_Click(object sender, EventArgs e)
         {
-            // Обновляем состояние чекбоксов в конфиге
-            for (int i = 0; i < lvProviders.Items.Count; i++)
+            config.GeoHideEnabled = chkGeoHide.Checked;
+            config.GeoHideRegion = rbGeoEU.Checked ? "eu" : (rbGeoUS.Checked ? "us" : "ru");
+
+            for (int i = 0; i < lvCustomProviders.Items.Count; i++)
             {
-                var p = lvProviders.Items[i].Tag as ProviderConfig;
-                if (p != null) p.Enabled = lvProviders.Items[i].Checked;
+                var p = lvCustomProviders.Items[i].Tag as CustomProviderConfig;
+                if (p != null) p.Enabled = lvCustomProviders.Items[i].Checked;
             }
             Program.SaveConfig(config);
 
-            lblProviderStatus.Text = "Синхронизация... Пожалуйста, подождите.";
+            lblProviderStatus.Text = "Синхронизация правил... Пожалуйста, подождите.";
             lblProviderStatus.ForeColor = Color.Blue;
             Application.DoEvents();
 
             bool res = Program.UpdateHostsRoutine(false);
             config = Program.LoadConfig();
-            RefreshProvidersList();
+            LoadConfigToUI();
 
             if (res)
             {
-                lblProviderStatus.Text = "✅ Hosts успешно синхронизирован! DNS-кэш сброшен (" + DateTime.Now.ToString("HH:mm:ss") + ")";
+                lblProviderStatus.Text = "✅ Hosts успешно синхронизирован! DNS-кэш Windows сброшен (" + DateTime.Now.ToString("HH:mm:ss") + ")";
                 lblProviderStatus.ForeColor = Color.DarkGreen;
-                MessageBox.Show("Файл hosts успешно обновлен!\nDNS-кэш Windows автоматически очищен.", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Файл hosts успешно обновлен!\nDNS-кэш Windows автоматически сброшен.", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
-                lblProviderStatus.Text = "⚠️ Ошибка обновления hosts (возможно, отменено UAC или нет интернета).";
+                lblProviderStatus.Text = "⚠️ Ошибка обновления hosts (возможно, отменено подтверждение UAC или нет сети).";
                 lblProviderStatus.ForeColor = Color.Red;
             }
         }
@@ -781,7 +891,6 @@ namespace HostsManager
                 }
                 else
                 {
-                    // Создаем задачу
                     string exePath = Application.ExecutablePath;
                     string scheduleArg = "/sc daily /st 09:00";
                     if (config.SchedulerInterval == "6h") scheduleArg = "/sc minute /mo 360";

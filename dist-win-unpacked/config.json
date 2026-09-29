@@ -5,27 +5,9 @@
   "BackupBeforeUpdate": true,
   "SchedulerEnabled": false,
   "SchedulerInterval": "daily",
-  "Providers": [
-    {
-      "Name": "GeoHide (RU)",
-      "Url": "https://geohide.ru/hosts",
-      "Enabled": true,
-      "LastHash": "",
-      "LastUpdated": ""
-    },
-    {
-      "Name": "GeoHide (EU)",
-      "Url": "https://geohide.ru/eu/hosts",
-      "Enabled": false,
-      "LastHash": "",
-      "LastUpdated": ""
-    },
-    {
-      "Name": "GeoHide (US)",
-      "Url": "https://geohide.ru/us/hosts",
-      "Enabled": false,
-      "LastHash": "",
-      "LastUpdated": ""
-    }
-  ]
+  "GeoHideEnabled": true,
+  "GeoHideRegion": "ru",
+  "GeoHideLastHash": "",
+  "GeoHideLastUpdated": "",
+  "CustomProviders": []
 }
