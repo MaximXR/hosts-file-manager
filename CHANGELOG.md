@@ -1,0 +1,56 @@
+# История изменений / Changelog
+
+Все заметные изменения в проекте Hosts Launcher & Manager документируются в этом файле.
+Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.0.0/) и придерживается [Семантического версионирования](https://semver.org/lang/ru/).
+
+---
+
+## [1.1.0] - 2026-09-30
+
+### Русский
+#### Добавлено
+- **Ярлык обновления в 1 клик**: создание ярлыка на Рабочем столе для тихой синхронизации подписок и сброса DNS-кэша без открытия интерфейса (`/update-now`).
+- **Ярлык менеджера**: создание прямого ярлыка на запуск панели управления `HostsManager.exe`.
+- **Режим простоя (Idle Condition)**: фоновое обновление теперь запускается только при отсутствии активности пользователя (не мешает онлайн-играм, работе и просмотру видео).
+- **Прямые ссылки на сайты проектов**: для подписок (GitHub520, Windows SpyBlocker, AdAway, StevenBlack) добавлены официальные страницы с подробным описанием вместо открытия сырых списков правил.
+- **Карточный интерфейс подписок**: замена стандартного ListView на удобные карточки в едином стиле с GeoHide, устраняющие случайные переключения чекбоксов.
+- **Архитектура версионирования**: внедрен `version.json`, автоматическая сборка релизных `.zip` архивов и ведение `CHANGELOG.md`.
+
+#### Изменено
+- Оптимизирована привязка иконок ярлыков через библиотеку `shell32.dll`.
+- Расписание автообновления теперь настраивается прямо из графического интерфейса с поддержкой интервалов и события входа в систему.
+
+---
+
+### English
+#### Added
+- **1-Click Update Shortcut**: create a Desktop shortcut for silent background subscription updates and DNS flush (`/update-now`).
+- **HostsManager Shortcut**: fast Desktop launcher for the configuration GUI.
+- **Idle Condition Support**: scheduled updates run strictly when the system is idle, preventing network or CPU interference during gaming or active work.
+- **Official Project Website Links**: direct navigation to project homepages (GitHub520, Windows SpyBlocker, AdAway, StevenBlack) instead of raw text rule lists.
+- **Card-based Subscriptions UI**: replaced table view with clean cards matching the GeoHide layout to eliminate accidental checkbox clicks.
+- **Versioning & Release Pipeline**: introduced `version.json`, automated portable `.zip` creation in `build.bat`, and bilingual `CHANGELOG.md`.
+
+#### Changed
+- Improved shortcut icon resolution from `shell32.dll`.
+- Scheduler frequency selection integrated directly into the GUI.
+
+---
+
+## [1.0.0] - 2026-09-29
+
+### Русский
+- Первый публичный релиз `OpenHostsFile.exe` и `HostsManager.exe`.
+- Мгновенный запуск системного файла `hosts` из панели задач Windows в выбранном редакторе (Блокнот, Notepad++, VS Code).
+- Интеграция антиблокировочного сервиса GeoHide (регионы RU, EU, US).
+- Изоляция правил в маркированных блоках с сохранением пользовательских ручных записей.
+- Автоматическое резервное копирование `hosts.bak`.
+- 100% Portable хранение без использования реестра Windows (`config.json`).
+
+### English
+- Initial public release of `OpenHostsFile.exe` and `HostsManager.exe`.
+- Fast taskbar launcher for Windows `hosts` file in custom editors (Notepad with UAC, Notepad++, VS Code).
+- GeoHide anti-censorship subscription provider integration (RU, EU, US regions).
+- Isolated managed blocks preserving manual user hosts entries.
+- Automatic safety backup to `hosts.bak`.
+- 100% portable configuration without Windows registry pollution (`config.json`).

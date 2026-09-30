@@ -5,6 +5,7 @@
 .idea/
 .vscode/
 
-# Build artifacts (dist-win-unpacked is kept as requested)
+# Build artifacts (dist-win-unpacked is kept as requested, portable zips in dist/ are ignored)
+dist/
 obj/
 bin/

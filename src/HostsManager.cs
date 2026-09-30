@@ -560,9 +560,8 @@ namespace HostsManager
         private RadioButton rbGeoUS;
         private Label lblGeoHideInfo;
 
-        private ListView lvCustomProviders;
+        private Panel pnlCustomProviders;
         private Button btnAddCustom;
-        private Button btnRemoveCustom;
         private Button btnResetPresets;
 
         private Label lblTaskStatus;
@@ -812,33 +811,19 @@ namespace HostsManager
                 Size = new Size(645, 220)
             };
 
-            lvCustomProviders = new ListView
+            pnlCustomProviders = new Panel
             {
                 Location = new Point(15, 22),
-                Size = new Size(615, 125),
-                View = View.Details,
-                CheckBoxes = true,
-                FullRowSelect = true,
-                GridLines = true
+                Size = new Size(615, 155),
+                AutoScroll = true,
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.FromArgb(252, 252, 254)
             };
-            lvCustomProviders.Columns.Add("Вкл", 45);
-            lvCustomProviders.Columns.Add("Название", 220);
-            lvCustomProviders.Columns.Add("Сайт проекта / Описание", 215);
-            lvCustomProviders.Columns.Add("Обновлено", 110);
 
-            btnAddCustom = new Button { Text = "➕ Свой URL...", Location = new Point(15, 153), Size = new Size(100, 28) };
+            btnAddCustom = new Button { Text = "➕ Добавить свой источник...", Location = new Point(15, 183), Size = new Size(185, 28) };
             btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(120, 153), Size = new Size(75, 28) };
-            btnRemoveCustom.Click += BtnRemoveCustom_Click;
-
-            Button btnOpenSite = new Button { Text = "🌐 Сайт проекта", Location = new Point(200, 153), Size = new Size(125, 28) };
-            btnOpenSite.Click += (s, e) => OpenSelectedProviderSite();
-
-            Button btnOpenFile = new Button { Text = "📄 Hosts-файл", Location = new Point(330, 153), Size = new Size(110, 28) };
-            btnOpenFile.Click += (s, e) => OpenSelectedProviderFile();
-
-            btnResetPresets = new Button { Text = "🔄 Восстановить пресеты", Location = new Point(445, 153), Size = new Size(185, 28) };
+            btnResetPresets = new Button { Text = "🔄 Восстановить пресеты", Location = new Point(208, 183), Size = new Size(175, 28) };
             btnResetPresets.Click += (s, e) =>
             {
                 if (MessageBox.Show("Сбросить список к популярным встроенным пресетам с официальными сайтами?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -849,43 +834,16 @@ namespace HostsManager
                 }
             };
 
-            // Двойной клик открывает сайт проекта с описанием
-            lvCustomProviders.DoubleClick += (s, e) => OpenSelectedProviderSite();
-
-            ContextMenuStrip cms = new ContextMenuStrip();
-            ToolStripMenuItem miOpenSite = new ToolStripMenuItem("🌐 Открыть сайт / репозиторий проекта (с описанием)");
-            miOpenSite.Click += (s, e) => OpenSelectedProviderSite();
-            ToolStripMenuItem miOpenFile = new ToolStripMenuItem("📄 Открыть файл hosts в браузере (raw)");
-            miOpenFile.Click += (s, e) => OpenSelectedProviderFile();
-            ToolStripMenuItem miCopySite = new ToolStripMenuItem("📋 Скопировать ссылку на сайт проекта");
-            miCopySite.Click += (s, e) => CopySelectedProviderSite();
-            ToolStripMenuItem miCopyUrl = new ToolStripMenuItem("📋 Скопировать прямую ссылку на hosts");
-            miCopyUrl.Click += (s, e) => CopySelectedProviderUrl();
-            ToolStripMenuItem miDel = new ToolStripMenuItem("🗑️ Удалить источник");
-            miDel.Click += BtnRemoveCustom_Click;
-
-            cms.Items.Add(miOpenSite);
-            cms.Items.Add(miOpenFile);
-            cms.Items.Add(new ToolStripSeparator());
-            cms.Items.Add(miCopySite);
-            cms.Items.Add(miCopyUrl);
-            cms.Items.Add(new ToolStripSeparator());
-            cms.Items.Add(miDel);
-            lvCustomProviders.ContextMenuStrip = cms;
-
             Label lblCustomHint = new Label
             {
-                Text = "💡 Двойной клик или кнопка «Сайт проекта» открывает официальную страницу с описанием сервиса.",
-                Location = new Point(15, 190),
-                Size = new Size(615, 22),
+                Text = "💡 Отмечайте нужные источники. Нажмите «Сайт проекта», чтобы изучить описание.",
+                Location = new Point(390, 183),
+                Size = new Size(240, 32),
                 ForeColor = Color.DarkSlateBlue
             };
 
-            gbCustom.Controls.Add(lvCustomProviders);
+            gbCustom.Controls.Add(pnlCustomProviders);
             gbCustom.Controls.Add(btnAddCustom);
-            gbCustom.Controls.Add(btnRemoveCustom);
-            gbCustom.Controls.Add(btnOpenSite);
-            gbCustom.Controls.Add(btnOpenFile);
             gbCustom.Controls.Add(btnResetPresets);
             gbCustom.Controls.Add(lblCustomHint);
 
@@ -1079,20 +1037,105 @@ namespace HostsManager
 
         private void RefreshCustomProvidersList()
         {
-            lvCustomProviders.Items.Clear();
+            pnlCustomProviders.SuspendLayout();
+            pnlCustomProviders.Controls.Clear();
             if (config.CustomProviders == null) config.CustomProviders = Program.GetDefaultPresets();
+
+            int cardWidth = 590;
+            int cardHeight = 54;
+            int yOffset = 6;
 
             foreach (var p in config.CustomProviders)
             {
-                ListViewItem item = new ListViewItem("");
-                item.Checked = p.Enabled;
-                item.SubItems.Add(p.Name);
-                string displaySite = !string.IsNullOrEmpty(p.SiteUrl) ? p.SiteUrl : p.Url;
-                item.SubItems.Add(displaySite);
-                item.SubItems.Add(string.IsNullOrEmpty(p.LastUpdated) ? "Никогда" : p.LastUpdated);
-                item.Tag = p;
-                lvCustomProviders.Items.Add(item);
+                Panel card = new Panel
+                {
+                    Location = new Point(6, yOffset),
+                    Size = new Size(cardWidth, cardHeight),
+                    BorderStyle = BorderStyle.FixedSingle,
+                    BackColor = Color.White
+                };
+
+                CheckBox chk = new CheckBox
+                {
+                    Text = p.Name,
+                    Checked = p.Enabled,
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Location = new Point(8, 4),
+                    AutoSize = true
+                };
+                chk.CheckedChanged += (s, e) =>
+                {
+                    p.Enabled = chk.Checked;
+                    Program.SaveConfig(config);
+                };
+
+                Button btnDel = new Button
+                {
+                    Text = "✕",
+                    Size = new Size(26, 22),
+                    Location = new Point(cardWidth - 32, 3),
+                    FlatStyle = FlatStyle.Flat,
+                    ForeColor = Color.IndianRed,
+                    Cursor = Cursors.Hand
+                };
+                btnDel.FlatAppearance.BorderSize = 0;
+                btnDel.Click += (s, e) =>
+                {
+                    if (MessageBox.Show("Удалить источник \"" + p.Name + "\" из списка?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                    {
+                        config.CustomProviders.Remove(p);
+                        Program.SaveConfig(config);
+                        RefreshCustomProvidersList();
+                    }
+                };
+
+                LinkLabel lnkSite = new LinkLabel
+                {
+                    Text = "🌐 Сайт проекта",
+                    Location = new Point(28, 28),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 8.5F)
+                };
+                string siteUrl = !string.IsNullOrEmpty(p.SiteUrl) ? p.SiteUrl : p.Url;
+                lnkSite.LinkClicked += (s, e) =>
+                {
+                    try { Process.Start(siteUrl); }
+                    catch (Exception ex) { MessageBox.Show("Не удалось открыть страницу проекта: " + ex.Message); }
+                };
+
+                LinkLabel lnkRaw = new LinkLabel
+                {
+                    Text = "📄 hosts-файл (raw)",
+                    Location = new Point(140, 28),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 8.5F)
+                };
+                lnkRaw.LinkClicked += (s, e) =>
+                {
+                    try { Process.Start(p.Url); }
+                    catch (Exception ex) { MessageBox.Show("Не удалось открыть hosts-файл: " + ex.Message); }
+                };
+
+                Label lblUpd = new Label
+                {
+                    Text = "Обновлено: " + (string.IsNullOrEmpty(p.LastUpdated) ? "Никогда" : p.LastUpdated),
+                    Location = new Point(275, 28),
+                    AutoSize = true,
+                    ForeColor = Color.DarkSlateGray,
+                    Font = new Font("Segoe UI", 8.5F)
+                };
+
+                card.Controls.Add(chk);
+                card.Controls.Add(btnDel);
+                card.Controls.Add(lnkSite);
+                card.Controls.Add(lnkRaw);
+                card.Controls.Add(lblUpd);
+
+                pnlCustomProviders.Controls.Add(card);
+                yOffset += cardHeight + 6;
             }
+
+            pnlCustomProviders.ResumeLayout();
         }
 
         private void CreateDesktopShortcut(string targetPath, string arguments, string iconLocation, string linkName, string description)
@@ -1184,62 +1227,6 @@ namespace HostsManager
             CreateDesktopShortcut(exePath, "", iconLoc, "Hosts Manager", "Панель управления hosts, подписками и планировщиком");
         }
 
-        private void OpenSelectedProviderSite()
-        {
-            if (lvCustomProviders.SelectedItems.Count == 0) return;
-            var item = lvCustomProviders.SelectedItems[0];
-            var provider = item.Tag as CustomProviderConfig;
-            if (provider != null)
-            {
-                string target = !string.IsNullOrEmpty(provider.SiteUrl) ? provider.SiteUrl : provider.Url;
-                if (!string.IsNullOrEmpty(target))
-                {
-                    try { Process.Start(target); }
-                    catch (Exception ex) { MessageBox.Show("Не удалось открыть страницу: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-                }
-            }
-        }
-
-        private void OpenSelectedProviderFile()
-        {
-            if (lvCustomProviders.SelectedItems.Count == 0) return;
-            var item = lvCustomProviders.SelectedItems[0];
-            var provider = item.Tag as CustomProviderConfig;
-            if (provider != null && !string.IsNullOrEmpty(provider.Url))
-            {
-                try { Process.Start(provider.Url); }
-                catch (Exception ex) { MessageBox.Show("Не удалось открыть файл hosts: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-            }
-        }
-
-        private void CopySelectedProviderSite()
-        {
-            if (lvCustomProviders.SelectedItems.Count == 0) return;
-            var item = lvCustomProviders.SelectedItems[0];
-            var provider = item.Tag as CustomProviderConfig;
-            if (provider != null)
-            {
-                string target = !string.IsNullOrEmpty(provider.SiteUrl) ? provider.SiteUrl : provider.Url;
-                if (!string.IsNullOrEmpty(target))
-                {
-                    Clipboard.SetText(target);
-                    MessageBox.Show("Ссылка на сайт проекта скопирована в буфер:\n" + target, "Скопировано", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-            }
-        }
-
-        private void CopySelectedProviderUrl()
-        {
-            if (lvCustomProviders.SelectedItems.Count == 0) return;
-            var item = lvCustomProviders.SelectedItems[0];
-            var provider = item.Tag as CustomProviderConfig;
-            if (provider != null && !string.IsNullOrEmpty(provider.Url))
-            {
-                Clipboard.SetText(provider.Url);
-                MessageBox.Show("Прямая ссылка на файл hosts скопирована в буфер:\n" + provider.Url, "Скопировано", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-
         private void BtnAddCustom_Click(object sender, EventArgs e)
         {
             string url = PromptDialog("Введите прямую ссылку на файл правил hosts (raw .txt):", "URL файла hosts");
@@ -1263,29 +1250,10 @@ namespace HostsManager
             RefreshCustomProvidersList();
         }
 
-        private void BtnRemoveCustom_Click(object sender, EventArgs e)
-        {
-            if (lvCustomProviders.SelectedItems.Count == 0) return;
-            var item = lvCustomProviders.SelectedItems[0];
-            var provider = item.Tag as CustomProviderConfig;
-            if (provider != null)
-            {
-                config.CustomProviders.Remove(provider);
-                Program.SaveConfig(config);
-                RefreshCustomProvidersList();
-            }
-        }
-
         private void BtnUpdateNow_Click(object sender, EventArgs e)
         {
             config.GeoHideEnabled = chkGeoHide.Checked;
             config.GeoHideRegion = rbGeoEU.Checked ? "eu" : (rbGeoUS.Checked ? "us" : "ru");
-
-            for (int i = 0; i < lvCustomProviders.Items.Count; i++)
-            {
-                var p = lvCustomProviders.Items[i].Tag as CustomProviderConfig;
-                if (p != null) p.Enabled = lvCustomProviders.Items[i].Checked;
-            }
             Program.SaveConfig(config);
 
             btnUpdateNow.Enabled = false;

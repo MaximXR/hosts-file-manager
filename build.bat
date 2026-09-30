@@ -14,26 +14,42 @@ if "%CSC%"=="" (
     exit /b 1
 )
 
-set "DIST_DIR=%~dp0dist-win-unpacked"
-if not exist "%DIST_DIR%" mkdir "%DIST_DIR%"
+set "DIST_UNPACKED=%~dp0dist-win-unpacked"
+set "DIST_ZIP_DIR=%~dp0dist"
+if not exist "%DIST_UNPACKED%" mkdir "%DIST_UNPACKED%"
+if not exist "%DIST_ZIP_DIR%" mkdir "%DIST_ZIP_DIR%"
 
-echo [1/2] Compiling OpenHostsFile.exe (Fast Taskbar Runner)...
-"%CSC%" /nologo /target:winexe /optimize+ /out:"%DIST_DIR%\OpenHostsFile.exe" "%~dp0src\Program.cs"
+echo [1/3] Compiling OpenHostsFile.exe (Fast Taskbar Runner)...
+"%CSC%" /nologo /target:winexe /optimize+ /out:"%DIST_UNPACKED%\OpenHostsFile.exe" "%~dp0src\Program.cs"
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Failed to compile OpenHostsFile.exe
     exit /b %ERRORLEVEL%
 )
 
-echo [2/2] Compiling HostsManager.exe (GUI, Shortcut Creator, Subscriptions, Scheduler)...
-"%CSC%" /nologo /target:winexe /optimize+ /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%DIST_DIR%\HostsManager.exe" "%~dp0src\HostsManager.cs"
+echo [2/3] Compiling HostsManager.exe (GUI, Shortcut Creator, Subscriptions, Scheduler)...
+"%CSC%" /nologo /target:winexe /optimize+ /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%DIST_UNPACKED%\HostsManager.exe" "%~dp0src\HostsManager.cs"
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Failed to compile HostsManager.exe
     exit /b %ERRORLEVEL%
 )
 
+echo [3/3] Packaging portable release ZIP into dist/...
+set "APP_VERSION="
+for /f "usebackq tokens=*" %%v in (`powershell -NoProfile -Command "(Get-Content '%~dp0version.json' | ConvertFrom-Json).version"`) do set "APP_VERSION=%%v"
+if "%APP_VERSION%"=="" set "APP_VERSION=1.0.0"
+
+powershell -NoProfile -Command "Compress-Archive -Path '%DIST_UNPACKED%\*', '%~dp0README.md', '%~dp0LICENSE' -DestinationPath '%DIST_ZIP_DIR%\HostsLauncher-v%APP_VERSION%-portable.zip' -Force"
+if %ERRORLEVEL% neq 0 (
+    echo [WARNING] Could not create zip archive.
+) else (
+    echo [OK] Package created: dist\HostsLauncher-v%APP_VERSION%-portable.zip
+)
+
 echo.
-echo [OK] All components successfully built into:
-echo      "%DIST_DIR%\OpenHostsFile.exe"
-echo      "%DIST_DIR%\HostsManager.exe"
+echo ========================================================
+echo [SUCCESS] Build completed!
+echo - Unpacked binaries: %DIST_UNPACKED%
+echo - Release archive:   %DIST_ZIP_DIR%\HostsLauncher-v%APP_VERSION%-portable.zip
+echo ========================================================
 
 endlocal
