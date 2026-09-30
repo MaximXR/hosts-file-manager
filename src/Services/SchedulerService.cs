@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -15,6 +16,18 @@ namespace HostsLauncher.Services
 
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        private static Encoding GetOemEncoding()
+        {
+            try
+            {
+                return Encoding.GetEncoding(CultureInfo.CurrentCulture.TextInfo.OEMCodePage);
+            }
+            catch
+            {
+                return Encoding.Default;
+            }
+        }
 
         public static bool CheckTaskStatus(out string nextRun, out string state)
         {
@@ -35,7 +48,8 @@ namespace HostsLauncher.Services
                     Arguments = string.Format("/query /tn \"{0}\" /fo csv /v /nh", TaskName),
                     CreateNoWindow = true,
                     UseShellExecute = false,
-                    RedirectStandardOutput = true
+                    RedirectStandardOutput = true,
+                    StandardOutputEncoding = GetOemEncoding()
                 };
                 Process p = Process.Start(psi);
                 string output = p != null ? p.StandardOutput.ReadToEnd() : "";
@@ -56,7 +70,8 @@ namespace HostsLauncher.Services
                             Arguments = string.Format("/query /tn \"{0}\" /xml", TaskName),
                             CreateNoWindow = true,
                             UseShellExecute = false,
-                            RedirectStandardOutput = true
+                            RedirectStandardOutput = true,
+                            StandardOutputEncoding = GetOemEncoding()
                         };
                         Process qProc = Process.Start(qPsi);
                         string xml = qProc != null ? qProc.StandardOutput.ReadToEnd() : "";
@@ -142,14 +157,15 @@ namespace HostsLauncher.Services
             {
                 try
                 {
-                    ProcessStartInfo qPsi = new ProcessStartInfo
-                    {
-                        FileName = "schtasks.exe",
-                        Arguments = string.Format("/query /tn \"{0}\" /xml", TaskName),
-                        CreateNoWindow = true,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true
-                    };
+                        ProcessStartInfo qPsi = new ProcessStartInfo
+                        {
+                            FileName = "schtasks.exe",
+                            Arguments = string.Format("/query /tn \"{0}\" /xml", TaskName),
+                            CreateNoWindow = true,
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            StandardOutputEncoding = GetOemEncoding()
+                        };
                     Process qProc = Process.Start(qPsi);
                     string xml = qProc != null ? qProc.StandardOutput.ReadToEnd() : "";
                     if (qProc != null) qProc.WaitForExit();

@@ -38,6 +38,7 @@ namespace HostsLauncher.UI
             }
             catch { }
         }
+
         // Header and Language
         internal Panel pnlHeader;
         internal Label lblAppInfo;
@@ -77,6 +78,7 @@ namespace HostsLauncher.UI
         internal Label lblUpdateIcon;
         internal ComboBox cboUpdateIcon;
         internal Label lblExtraHint;
+        internal Panel pnlDivider;
 
         // Providers tab (GeoHide + Sources + Task Scheduler)
         internal GroupBox gbGeo;
@@ -224,6 +226,7 @@ namespace HostsLauncher.UI
             lblAppInfo = new Label
             {
                 Text = "Hosts Launcher & Manager",
+                UseMnemonic = false,
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(30, 41, 59),
                 Location = new Point(14, 8),
@@ -235,9 +238,8 @@ namespace HostsLauncher.UI
                 Location = new Point(205, 5),
                 Size = new Size(195, 26),
                 Font = new Font("Segoe UI", 8.5F, FontStyle.Regular),
-                BackColor = Color.FromArgb(255, 255, 255),
                 Cursor = Cursors.Hand,
-                FlatStyle = FlatStyle.Standard
+                UseVisualStyleBackColor = true
             };
             btnOpenHostsHeader.Click += BtnOpenHostsHeader_Click;
 
@@ -245,6 +247,7 @@ namespace HostsLauncher.UI
             {
                 Location = new Point(415, 9),
                 AutoSize = true,
+                UseMnemonic = false,
                 ForeColor = Color.DimGray
             };
 
@@ -273,14 +276,7 @@ namespace HostsLauncher.UI
             pnlHeader.Controls.Add(btnOpenHostsHeader);
             pnlHeader.Controls.Add(lblLang);
             pnlHeader.Controls.Add(cboLanguage);
-            pnlHeader.Resize += (s, e) =>
-            {
-                if (cboLanguage != null && lblLang != null)
-                {
-                    cboLanguage.Left = pnlHeader.ClientSize.Width - cboLanguage.Width - 16;
-                    lblLang.Left = cboLanguage.Left - lblLang.Width - 10;
-                }
-            };
+            pnlHeader.Resize += (s, e) => LayoutHeader();
 
             tabs = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9F) };
 
@@ -300,12 +296,34 @@ namespace HostsLauncher.UI
 
             this.Resize += (s, e) =>
             {
+                LayoutHeader();
                 LayoutProvidersTab();
                 LayoutShortcutsTab();
             };
 
             this.Controls.Add(tabs);
             this.Controls.Add(pnlHeader);
+            pnlHeader.SendToBack();
+        }
+
+        internal void LayoutHeader()
+        {
+            if (pnlHeader == null || cboLanguage == null || lblLang == null) return;
+
+            cboLanguage.Left = pnlHeader.ClientSize.Width - cboLanguage.Width - 14;
+            cboLanguage.Top = (pnlHeader.ClientSize.Height - cboLanguage.Height) / 2;
+
+            lblLang.Left = cboLanguage.Left - lblLang.PreferredWidth - 8;
+            lblLang.Top = (pnlHeader.ClientSize.Height - lblLang.Height) / 2;
+
+            if (btnOpenHostsHeader != null && lblAppInfo != null)
+            {
+                btnOpenHostsHeader.Top = (pnlHeader.ClientSize.Height - btnOpenHostsHeader.Height) / 2;
+                int startX = lblAppInfo.Right + 10;
+                int endX = lblLang.Left - 10;
+                int midX = (startX + endX) / 2;
+                btnOpenHostsHeader.Left = Math.Max(startX, midX - (btnOpenHostsHeader.Width / 2));
+            }
         }
 
         private void InitShortcutsTab()
@@ -347,7 +365,7 @@ namespace HostsLauncher.UI
                 }
             };
 
-            Panel pnlDivider = new Panel
+            pnlDivider = new Panel
             {
                 Location = new Point(20, 138),
                 Size = new Size(605, 1),
@@ -433,7 +451,7 @@ namespace HostsLauncher.UI
             // Блок 3: Ярлык панели управления Hosts Manager
             gbManagerShortcut = new GroupBox
             {
-                Location = new Point(15, 430),
+                Location = new Point(15, 416),
                 Size = new Size(645, 96)
             };
 
@@ -460,7 +478,7 @@ namespace HostsLauncher.UI
             // Нижняя подсказка
             lblShortcutHint = new Label
             {
-                Location = new Point(15, 542),
+                Location = new Point(15, 520),
                 Size = new Size(645, 34),
                 ForeColor = Color.DimGray
             };
@@ -491,6 +509,22 @@ namespace HostsLauncher.UI
             gbUpdateShortcut.Width = contentW;
             gbManagerShortcut.Width = contentW;
             if (lblShortcutHint != null) lblShortcutHint.Width = contentW;
+
+            int innerW = contentW - 40;
+            if (btnCreateShortcut != null) btnCreateShortcut.Width = innerW;
+            if (btnCreateUpdateShortcut != null) btnCreateUpdateShortcut.Width = innerW;
+            if (btnCreateManagerShortcut != null) btnCreateManagerShortcut.Width = innerW;
+            if (pnlDivider != null) pnlDivider.Width = innerW;
+            if (lblUpdateHint != null) lblUpdateHint.Width = innerW;
+            if (lblManagerHint != null) lblManagerHint.Width = innerW;
+
+            int fieldW = Math.Max(180, contentW - 245);
+            if (txtShortcutName != null) txtShortcutName.Width = fieldW;
+            if (cboIcon != null) cboIcon.Width = fieldW;
+            if (cboUpdateIcon != null) cboUpdateIcon.Width = fieldW;
+
+            if (txtCustomPath != null) txtCustomPath.Width = Math.Max(120, contentW - 270);
+            if (btnBrowseCustom != null) btnBrowseCustom.Left = contentW - 100;
         }
 
         private void InitProvidersTab()
@@ -511,7 +545,7 @@ namespace HostsLauncher.UI
 
             lnkGeoSite = new LinkLabel
             {
-                Location = new Point(415, 20),
+                Location = new Point(360, 20),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9F)
             };
@@ -739,6 +773,10 @@ namespace HostsLauncher.UI
             // 1. Верхний фиксированный блок: GeoHide
             gbGeo.Location = new Point(15, 6);
             gbGeo.Size = new Size(contentW, 114);
+            if (lnkGeoSite != null)
+            {
+                lnkGeoSite.Left = Math.Max(chkGeoHide != null ? chkGeoHide.Right + 10 : 360, gbGeo.ClientSize.Width - lnkGeoSite.PreferredWidth - 15);
+            }
 
             // 2. Нижние фиксированные блоки: статус, кнопка синхронизации, планировщик
             lblProviderStatus.Size = new Size(contentW, 20);
@@ -752,6 +790,19 @@ namespace HostsLauncher.UI
 
             if (lblTaskStatus != null) lblTaskStatus.Width = gbScheduler.ClientSize.Width - 30;
             if (lblPathHint != null) lblPathHint.Width = gbScheduler.ClientSize.Width - 30;
+
+            if (btnCopyCmd != null && txtSchedulerCmd != null && cboSchedule != null)
+            {
+                btnCopyCmd.Left = gbScheduler.ClientSize.Width - 15 - 105;
+                txtSchedulerCmd.Width = Math.Max(60, btnCopyCmd.Left - 8 - txtSchedulerCmd.Left);
+            }
+            if (btnToggleTask != null && btnOpenTaskScheduler != null)
+            {
+                int halfW = (gbScheduler.ClientSize.Width - 38) / 2;
+                btnToggleTask.Width = halfW;
+                btnOpenTaskScheduler.Left = btnToggleTask.Right + 8;
+                btnOpenTaskScheduler.Width = gbScheduler.ClientSize.Width - 15 - btnOpenTaskScheduler.Left;
+            }
 
             // 3. Динамический блок подписок (сжимается и растягивается строго этот раздел)
             int customTop = gbGeo.Bottom + 6; // 126
@@ -768,6 +819,7 @@ namespace HostsLauncher.UI
 
             int pnlH = Math.Max(30, btnRowY - 28);
             int pnlW = Math.Max(200, gbCustom.ClientSize.Width - 24);
+
             if (pnlCustomProviders != null)
             {
                 pnlCustomProviders.Location = new Point(12, 22);
@@ -805,6 +857,8 @@ namespace HostsLauncher.UI
                 btnOpenHostsHeader.Text = L10n.T("BtnHeaderOpenHosts");
                 if (toolTip != null) toolTip.SetToolTip(btnOpenHostsHeader, L10n.T("BtnHeaderOpenHostsTooltip"));
             }
+
+            LayoutHeader();
 
             // Shortcuts Tab - Block 1: Open hosts shortcut
             if (gbHostsShortcut != null) gbHostsShortcut.Text = L10n.T("GbHostsShortcutTitle");
