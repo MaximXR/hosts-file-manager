@@ -135,10 +135,12 @@ HostsLauncher/
 
 ---
 
-### Рекомендуемые расширения-компаньоны
+### Используете hosts для работы с нейросетями?
 
-* **[Antigravity Chat Manager](https://github.com/MaximXR/Antigravity-Chat-Manager)** — визуальный менеджер истории диалогов, поиск по сессиям и очистка диска от мусора ИИ в Antigravity.
-* **[Antigravity Plugin Manager](https://github.com/MaximXR/Antigravity-Plugin-Manager)** — панель управления плагинами, правилами, навыками и MCP-серверами для Antigravity.
+Если вы настраиваете файл `hosts` для стабильного доступа к зарубежным ИИ-сервисам, API и инструментам разработки в России без медленных VPN, рекомендую обратить внимание на другие мои проекты для экосистемы ИИ-разработки (Antigravity):
+
+* **[Antigravity Chat Manager](https://github.com/MaximXR/Antigravity-Chat-Manager)** — визуальный менеджер истории диалогов с ИИ: глубокий поиск по сессиям и очистка диска от гигабайтов кэша и мусора.
+* **[Antigravity Plugin Manager](https://github.com/MaximXR/Antigravity-Plugin-Manager)** — единая панель управления плагинами, системными инструкциями (rules), навыками (skills) и MCP-серверами.
 
 ---
 
@@ -265,10 +267,12 @@ HostsLauncher/
 
 ---
 
-### Recommended Companion Extensions
+### Using hosts for AI & developer platforms?
 
-* **[Antigravity Chat Manager](https://github.com/MaximXR/Antigravity-Chat-Manager)** — visual AI conversation history manager, session search, and disk cleaner for Antigravity.
-* **[Antigravity Plugin Manager](https://github.com/MaximXR/Antigravity-Plugin-Manager)** — visual control panel for plugins, rules, skills, and MCP servers in Antigravity.
+If you configure your `hosts` file to maintain high-speed access to foreign AI services, APIs, and developer platforms without connection drops, you might also like my open-source AI tooling for the Antigravity ecosystem:
+
+* **[Antigravity Chat Manager](https://github.com/MaximXR/Antigravity-Chat-Manager)** — visual conversation history manager: deep search across AI sessions and automated disk cleaner for workspace caches.
+* **[Antigravity Plugin Manager](https://github.com/MaximXR/Antigravity-Plugin-Manager)** — unified control panel for plugins, system instructions (rules), skills, and MCP servers.
 
 ---
 
