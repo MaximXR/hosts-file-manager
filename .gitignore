@@ -1,6 +1,8 @@
 # IDE and Temp files
 *.tmp
 *.log
+*.legacy
+*.bak
 .vs/
 .idea/
 .vscode/

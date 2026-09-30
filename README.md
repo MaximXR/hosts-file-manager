@@ -64,18 +64,26 @@
 ```text
 HostsLauncher/
 ├── src/
-│   ├── Program.cs             # Исходный код OpenHostsFile (быстрый раннер для панели задач)
-│   └── HostsManager.cs        # Исходный код HostsManager (GUI, генератор ярлыков, синхронизация, i18n)
-├── dist-win-unpacked/         # Готовые бинарники для работы
-│   ├── OpenHostsFile.exe      # Легковесный раннер (запуск редактора с UAC)
-│   ├── HostsManager.exe       # Графическая панель управления
-│   └── config.json            # Портативная конфигурация (без реестра Windows)
-├── dist/                      # Скомпилированные релизные zip-архивы
+│   ├── Models/AppConfig.cs        # Конфигурация, пресеты, JSON
+│   ├── Localization/L10n.cs       # Словари RU/EN, переводчик
+│   ├── Services/HostsService.cs   # Парсинг hosts, изоляция блоков, сброс DNS
+│   ├── Services/SchedulerService.cs # Планировщик Windows, RunOnlyIfIdle
+│   ├── UI/MainForm.cs             # Графический интерфейс Windows Forms
+│   ├── HostsManagerProgram.cs     # Точка входа HostsManager.exe
+│   └── Program.cs                 # Точка входа OpenHostsFile.exe (быстрый раннер)
+├── tests/
+│   └── TestSuite.cs               # Автоматический тестовый комплекс (10 тестов)
+├── dist-win-unpacked/             # Готовые бинарники для работы
+│   ├── OpenHostsFile.exe          # Легковесный раннер (запуск редактора с UAC)
+│   ├── HostsManager.exe           # Графическая панель управления
+│   └── config.json                # Портативная конфигурация (без реестра Windows)
+├── dist/                          # Скомпилированные релизные zip-архивы
 │   └── HostsLauncher-v1.2.0-portable.zip
-├── build.bat                  # Скрипт сборки и упаковки в dist/
-├── version.json               # Единый источник версии проекта (SemVer)
-├── CHANGELOG.md               # Двуязычная история изменений (RU / EN)
-├── LICENSE                    # Лицензия MIT
+├── test.bat                       # Скрипт сборки и запуска автотестов
+├── build.bat                      # Сборка с автотестами и упаковка в dist/
+├── version.json                   # Единый источник версии проекта (SemVer)
+├── CHANGELOG.md                   # Двуязычная история изменений (RU / EN)
+├── LICENSE                        # Лицензия MIT
 ├── .gitignore
 └── README.md
 ```
@@ -157,18 +165,26 @@ HostsLauncher/
 ```text
 HostsLauncher/
 ├── src/
-│   ├── Program.cs             # OpenHostsFile source (fast taskbar launcher)
-│   └── HostsManager.cs        # HostsManager source (GUI, shortcuts, sync engine, i18n)
-├── dist-win-unpacked/         # Compiled binaries ready to run
-│   ├── OpenHostsFile.exe      # Lightweight runner (launches editor with UAC)
+│   ├── Models/AppConfig.cs        # Configuration, presets, JSON
+│   ├── Localization/L10n.cs       # RU/EN dictionaries, translator
+│   ├── Services/HostsService.cs   # Hosts parsing, block isolation, DNS flush
+│   ├── Services/SchedulerService.cs # Windows Task Scheduler, RunOnlyIfIdle
+│   ├── UI/MainForm.cs             # Windows Forms GUI
+│   ├── HostsManagerProgram.cs     # HostsManager.exe entrypoint
+│   └── Program.cs                 # OpenHostsFile.exe entrypoint (fast runner)
+├── tests/
+│   └── TestSuite.cs               # Automated test suite (10 tests)
+├── dist-win-unpacked/             # Compiled binaries ready to run
+│   ├── OpenHostsFile.exe          # Lightweight runner (launches editor with UAC)
 │   ├── HostsManager.exe       # Graphical control panel
-│   └── config.json            # Portable configuration
-├── dist/                      # Packaged release archives
+│   └── config.json                # Portable configuration (without registry)
+├── dist/                          # Packaged release archives
 │   └── HostsLauncher-v1.2.0-portable.zip
-├── build.bat                  # Compilation and packaging batch script
-├── version.json               # Semantic version SSOT
-├── CHANGELOG.md               # Bilingual changelog (RU / EN)
-├── LICENSE                    # MIT License
+├── test.bat                       # Test compilation and execution script
+├── build.bat                      # Build script with test gates and packaging
+├── version.json                   # Semantic version SSOT
+├── CHANGELOG.md                   # Bilingual changelog (RU / EN)
+├── LICENSE                        # MIT License
 ├── .gitignore
 └── README.md
 ```

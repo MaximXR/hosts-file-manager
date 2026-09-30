@@ -1,6 +1,15 @@
 @echo off
 setlocal
 
+echo [0/3] Running Automated Test Suite...
+call "%~dp0test.bat"
+if %ERRORLEVEL% neq 0 (
+    echo.
+    echo [ERROR] Build aborted because tests failed!
+    exit /b %ERRORLEVEL%
+)
+echo.
+
 set "CSC=C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 if not exist "%CSC%" (
     set "CSC=C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe"
@@ -26,8 +35,8 @@ if %ERRORLEVEL% neq 0 (
     exit /b %ERRORLEVEL%
 )
 
-echo [2/3] Compiling HostsManager.exe (GUI, Shortcut Creator, Subscriptions, Scheduler)...
-"%CSC%" /nologo /target:winexe /optimize+ /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%DIST_UNPACKED%\HostsManager.exe" "%~dp0src\HostsManager.cs"
+echo [2/3] Compiling HostsManager.exe (Modular GUI, Subscriptions, Scheduler, i18n)...
+"%CSC%" /nologo /target:winexe /optimize+ /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%DIST_UNPACKED%\HostsManager.exe" "%~dp0src\Models\*.cs" "%~dp0src\Localization\*.cs" "%~dp0src\Services\*.cs" "%~dp0src\UI\*.cs" "%~dp0src\HostsManagerProgram.cs"
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Failed to compile HostsManager.exe
     exit /b %ERRORLEVEL%
@@ -36,7 +45,7 @@ if %ERRORLEVEL% neq 0 (
 echo [3/3] Packaging portable release ZIP into dist/...
 set "APP_VERSION="
 for /f "usebackq tokens=*" %%v in (`powershell -NoProfile -Command "(Get-Content '%~dp0version.json' | ConvertFrom-Json).version"`) do set "APP_VERSION=%%v"
-if "%APP_VERSION%"=="" set "APP_VERSION=1.0.0"
+if "%APP_VERSION%"=="" set "APP_VERSION=1.2.0"
 
 powershell -NoProfile -Command "Compress-Archive -Path '%DIST_UNPACKED%\*', '%~dp0README.md', '%~dp0LICENSE' -DestinationPath '%DIST_ZIP_DIR%\HostsLauncher-v%APP_VERSION%-portable.zip' -Force"
 if %ERRORLEVEL% neq 0 (
@@ -47,7 +56,7 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo ========================================================
-echo [SUCCESS] Build completed!
+echo [SUCCESS] Build and Test completed successfully!
 echo - Unpacked binaries: %DIST_UNPACKED%
 echo - Release archive:   %DIST_ZIP_DIR%\HostsLauncher-v%APP_VERSION%-portable.zip
 echo ========================================================
