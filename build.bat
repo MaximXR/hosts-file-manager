@@ -29,14 +29,14 @@ if not exist "%DIST_UNPACKED%" mkdir "%DIST_UNPACKED%"
 if not exist "%DIST_ZIP_DIR%" mkdir "%DIST_ZIP_DIR%"
 
 echo [1/3] Compiling OpenHostsFile.exe (Fast Taskbar Runner)...
-"%CSC%" /nologo /target:winexe /optimize+ /out:"%DIST_UNPACKED%\OpenHostsFile.exe" "%~dp0src\Program.cs"
+"%CSC%" /nologo /target:winexe /optimize+ /win32icon:"%~dp0resources\app.ico" /out:"%DIST_UNPACKED%\OpenHostsFile.exe" "%~dp0src\Program.cs"
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Failed to compile OpenHostsFile.exe
     exit /b %ERRORLEVEL%
 )
 
 echo [2/3] Compiling HostsManager.exe (Modular GUI, Subscriptions, Scheduler, i18n)...
-"%CSC%" /nologo /target:winexe /optimize+ /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%DIST_UNPACKED%\HostsManager.exe" "%~dp0src\Models\*.cs" "%~dp0src\Localization\*.cs" "%~dp0src\Services\*.cs" "%~dp0src\UI\*.cs" "%~dp0src\HostsManagerProgram.cs"
+"%CSC%" /nologo /target:winexe /optimize+ /win32icon:"%~dp0resources\app.ico" /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%DIST_UNPACKED%\HostsManager.exe" "%~dp0src\Models\*.cs" "%~dp0src\Localization\*.cs" "%~dp0src\Services\*.cs" "%~dp0src\UI\*.cs" "%~dp0src\HostsManagerProgram.cs"
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Failed to compile HostsManager.exe
     exit /b %ERRORLEVEL%

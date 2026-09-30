@@ -5,6 +5,28 @@
 
 ---
 
+## [1.2.1] - 2026-09-30
+
+### Русский
+#### Добавлено
+- **Единая иконка приложения**: нативный значок Win32 вшит в исполняемые файлы `HostsManager.exe` и `OpenHostsFile.exe`, отображается в заголовке окна, на Панели задач Windows и наследуется ярлыком менеджера на Рабочем столе.
+- **Модульная архитектура и набор автотестов**: исходный код структурирован по пространствам имен (`Models`, `Localization`, `Services`, `UI`). Внедрен автоматический тестовый комплект `test.bat` (10 тестов), валидирующий паритет локализации, работу с блоками hosts, параметры XML планировщика и заполненность UI-контролов.
+
+#### Изменено
+- **Компактный редизайн списка подписок**: оптимизирована компоновка списка источников (высота строки 32px, зебра-фон, бейджи `[🌐 Сайт]` и `[📄 hosts]`, всплывающие подсказки). Все 5 встроенных пресетов помещаются на экране без вертикальной полосы прокрутки.
+- **Оптимизация геометрии окна**: высота окна уменьшена с 805px до 725px без потери читаемости, сокращены лишние отступы в блоке GeoHide.
+
+### English
+#### Added
+- **Unified Native Application Icon**: embedded Win32 application icon resource in `HostsManager.exe` and `OpenHostsFile.exe`, displayed in window title, Windows Taskbar, and assigned to Desktop shortcuts.
+- **Modular Refactoring & Automated Test Suite**: separated source code into distinct namespaces (`Models`, `Localization`, `Services`, `UI`). Introduced automated test suite `test.bat` with 10 unit and UI integrity tests.
+
+#### Changed
+- **Compact Subscriptions UI Redesign**: streamlined custom providers list with sleek 32px rows, zebra styling, compact badges `[🌐 Сайт]` / `[📄 hosts]`, and tooltips. All 5 default presets fit without a vertical scrollbar.
+- **Window Geometry Optimization**: reduced total form height from 805px to 725px, removing excess whitespace while retaining clean information hierarchy.
+
+---
+
 ## [1.2.0] - 2026-09-30
 
 ### Русский

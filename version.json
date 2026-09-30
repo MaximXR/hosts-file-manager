@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
+  "version": "1.2.1",
   "name": "hosts-launcher",
   "displayName": "Hosts Launcher & Manager",
   "description": "Windows hosts file manager, taskbar launcher, subscription auto-sync and scheduler",

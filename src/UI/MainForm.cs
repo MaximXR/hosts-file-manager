@@ -74,12 +74,27 @@ namespace HostsLauncher.UI
         internal Button btnUpdateNow;
         internal Label lblProviderStatus;
 
+        internal ToolTip toolTip;
         internal AppConfig config;
 
         public MainForm(AppConfig initialConfig = null)
         {
             config = initialConfig ?? ConfigManager.LoadConfig();
             L10n.CurrentLang = string.IsNullOrEmpty(config.Language) ? "ru" : config.Language;
+
+            toolTip = new ToolTip
+            {
+                AutoPopDelay = 5000,
+                InitialDelay = 400,
+                ReshowDelay = 200,
+                ShowAlways = true
+            };
+
+            try
+            {
+                this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            }
+            catch { }
 
             InitUI();
             ApplyLocalization();
@@ -88,7 +103,7 @@ namespace HostsLauncher.UI
 
         private void InitUI()
         {
-            this.Size = new Size(690, 805);
+            this.Size = new Size(690, 725);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -159,8 +174,8 @@ namespace HostsLauncher.UI
         {
             gbEditor = new GroupBox
             {
-                Location = new Point(15, 12),
-                Size = new Size(645, 168)
+                Location = new Point(15, 10),
+                Size = new Size(645, 160)
             };
 
             rbOpenWith = new RadioButton { Location = new Point(20, 24), AutoSize = true, Checked = true };
@@ -201,8 +216,8 @@ namespace HostsLauncher.UI
 
             gbSettings = new GroupBox
             {
-                Location = new Point(15, 186),
-                Size = new Size(645, 130)
+                Location = new Point(15, 178),
+                Size = new Size(645, 126)
             };
 
             lblShortcutName = new Label { Location = new Point(20, 26), AutoSize = true };
@@ -215,7 +230,7 @@ namespace HostsLauncher.UI
             cboIcon.Items.Add(L10n.T("IconNpp"));
             cboIcon.SelectedIndex = 0;
 
-            chkAdmin = new CheckBox { Location = new Point(20, 92), AutoSize = true };
+            chkAdmin = new CheckBox { Location = new Point(20, 90), AutoSize = true };
 
             gbSettings.Controls.Add(lblShortcutName);
             gbSettings.Controls.Add(txtShortcutName);
@@ -225,8 +240,8 @@ namespace HostsLauncher.UI
 
             btnCreateShortcut = new Button
             {
-                Location = new Point(15, 324),
-                Size = new Size(645, 42),
+                Location = new Point(15, 312),
+                Size = new Size(645, 40),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 245, 255)
             };
@@ -234,14 +249,14 @@ namespace HostsLauncher.UI
 
             gbExtraShortcuts = new GroupBox
             {
-                Location = new Point(15, 376),
-                Size = new Size(645, 120)
+                Location = new Point(15, 360),
+                Size = new Size(645, 115)
             };
 
             btnCreateUpdateShortcut = new Button
             {
-                Location = new Point(20, 28),
-                Size = new Size(295, 40),
+                Location = new Point(20, 26),
+                Size = new Size(295, 38),
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240)
             };
@@ -249,8 +264,8 @@ namespace HostsLauncher.UI
 
             btnCreateManagerShortcut = new Button
             {
-                Location = new Point(330, 28),
-                Size = new Size(295, 40),
+                Location = new Point(330, 26),
+                Size = new Size(295, 38),
                 Font = new Font("Segoe UI", 9.5F),
                 BackColor = Color.FromArgb(245, 245, 250)
             };
@@ -258,7 +273,7 @@ namespace HostsLauncher.UI
 
             lblExtraHint = new Label
             {
-                Location = new Point(20, 78),
+                Location = new Point(20, 72),
                 Size = new Size(605, 32),
                 ForeColor = Color.DarkSlateGray
             };
@@ -269,7 +284,7 @@ namespace HostsLauncher.UI
 
             lblShortcutHint = new Label
             {
-                Location = new Point(15, 510),
+                Location = new Point(15, 485),
                 Size = new Size(645, 35),
                 ForeColor = Color.DimGray
             };
@@ -283,11 +298,11 @@ namespace HostsLauncher.UI
 
         private void InitProvidersTab()
         {
-            // Блок 1: GeoHide
+            // Блок 1: GeoHide (Компактный)
             gbGeo = new GroupBox
             {
                 Location = new Point(15, 8),
-                Size = new Size(645, 195)
+                Size = new Size(645, 158)
             };
 
             chkGeoHide = new CheckBox
@@ -297,19 +312,9 @@ namespace HostsLauncher.UI
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
 
-            lblRegionTitle = new Label
-            {
-                Location = new Point(15, 45),
-                AutoSize = true
-            };
-
-            rbGeoRU = new RadioButton { Location = new Point(35, 68), AutoSize = true, Checked = true };
-            rbGeoEU = new RadioButton { Location = new Point(35, 92), AutoSize = true };
-            rbGeoUS = new RadioButton { Location = new Point(35, 116), AutoSize = true };
-
             lnkGeoSite = new LinkLabel
             {
-                Location = new Point(35, 142),
+                Location = new Point(415, 20),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9F)
             };
@@ -319,9 +324,20 @@ namespace HostsLauncher.UI
                 catch (Exception ex) { MessageBox.Show(L10n.T("ErrorOpenBrowser", ex.Message)); }
             };
 
+            lblRegionTitle = new Label
+            {
+                Location = new Point(15, 46),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(70, 80, 95)
+            };
+
+            rbGeoRU = new RadioButton { Location = new Point(30, 68), AutoSize = true, Checked = true };
+            rbGeoEU = new RadioButton { Location = new Point(30, 90), AutoSize = true };
+            rbGeoUS = new RadioButton { Location = new Point(30, 112), AutoSize = true };
+
             lblGeoHideInfo = new Label
             {
-                Location = new Point(35, 168),
+                Location = new Point(30, 134),
                 AutoSize = true,
                 ForeColor = Color.DarkSlateGray
             };
@@ -334,33 +350,33 @@ namespace HostsLauncher.UI
             };
 
             gbGeo.Controls.Add(chkGeoHide);
+            gbGeo.Controls.Add(lnkGeoSite);
             gbGeo.Controls.Add(lblRegionTitle);
             gbGeo.Controls.Add(rbGeoRU);
             gbGeo.Controls.Add(rbGeoEU);
             gbGeo.Controls.Add(rbGeoUS);
-            gbGeo.Controls.Add(lnkGeoSite);
             gbGeo.Controls.Add(lblGeoHideInfo);
 
-            // Блок 2: Дополнительные источники
+            // Блок 2: Дополнительные источники (Просторный и компактный список)
             gbCustom = new GroupBox
             {
-                Location = new Point(15, 210),
-                Size = new Size(645, 220)
+                Location = new Point(15, 172),
+                Size = new Size(645, 255)
             };
 
             pnlCustomProviders = new Panel
             {
-                Location = new Point(15, 22),
-                Size = new Size(615, 155),
+                Location = new Point(12, 22),
+                Size = new Size(621, 188),
                 AutoScroll = true,
                 BorderStyle = BorderStyle.FixedSingle,
-                BackColor = Color.FromArgb(252, 252, 254)
+                BackColor = Color.White
             };
 
-            btnAddCustom = new Button { Location = new Point(15, 183), Size = new Size(185, 28) };
+            btnAddCustom = new Button { Location = new Point(12, 218), Size = new Size(175, 27) };
             btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnResetPresets = new Button { Location = new Point(208, 183), Size = new Size(175, 28) };
+            btnResetPresets = new Button { Location = new Point(195, 218), Size = new Size(165, 27) };
             btnResetPresets.Click += (s, e) =>
             {
                 if (MessageBox.Show(L10n.T("ConfirmResetPresets"), L10n.T("Confirmation"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -373,8 +389,8 @@ namespace HostsLauncher.UI
 
             lblCustomHint = new Label
             {
-                Location = new Point(390, 183),
-                Size = new Size(240, 32),
+                Location = new Point(370, 216),
+                Size = new Size(260, 30),
                 ForeColor = Color.DarkSlateBlue
             };
 
@@ -386,8 +402,8 @@ namespace HostsLauncher.UI
             // Блок 3: Планировщик Windows
             gbScheduler = new GroupBox
             {
-                Location = new Point(15, 436),
-                Size = new Size(645, 185)
+                Location = new Point(15, 434),
+                Size = new Size(645, 165)
             };
 
             lblTaskStatus = new Label
@@ -405,8 +421,8 @@ namespace HostsLauncher.UI
 
             cboSchedule = new ComboBox
             {
-                Location = new Point(100, 43),
-                Size = new Size(230, 23),
+                Location = new Point(95, 43),
+                Size = new Size(225, 23),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             cboSchedule.Items.Add(L10n.T("SchedDaily9"));
@@ -421,8 +437,8 @@ namespace HostsLauncher.UI
             txtSchedulerCmd = new TextBox
             {
                 Text = cmdString,
-                Location = new Point(338, 43),
-                Size = new Size(182, 23),
+                Location = new Point(328, 43),
+                Size = new Size(190, 23),
                 ReadOnly = true,
                 BackColor = Color.WhiteSmoke
             };
@@ -440,32 +456,32 @@ namespace HostsLauncher.UI
 
             chkOnlyIfIdle = new CheckBox
             {
-                Location = new Point(15, 74),
+                Location = new Point(15, 72),
                 AutoSize = true,
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
                 Checked = true
             };
 
             btnToggleTask = new Button
             {
-                Location = new Point(15, 102),
-                Size = new Size(310, 36),
+                Location = new Point(15, 96),
+                Size = new Size(305, 34),
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
             btnToggleTask.Click += BtnToggleTask_Click;
 
             btnOpenTaskScheduler = new Button
             {
-                Location = new Point(335, 102),
-                Size = new Size(295, 36),
+                Location = new Point(328, 96),
+                Size = new Size(302, 34),
                 Font = new Font("Segoe UI", 9F)
             };
             btnOpenTaskScheduler.Click += (s, e) => SchedulerService.OpenTaskScheduler();
 
             lblPathHint = new Label
             {
-                Location = new Point(15, 146),
-                Size = new Size(615, 28),
+                Location = new Point(15, 134),
+                Size = new Size(615, 24),
                 ForeColor = Color.DimGray
             };
 
@@ -482,8 +498,8 @@ namespace HostsLauncher.UI
             // Кнопка синхронизации
             btnUpdateNow = new Button
             {
-                Location = new Point(15, 628),
-                Size = new Size(645, 42),
+                Location = new Point(15, 606),
+                Size = new Size(645, 40),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240)
             };
@@ -491,8 +507,8 @@ namespace HostsLauncher.UI
 
             lblProviderStatus = new Label
             {
-                Location = new Point(15, 674),
-                Size = new Size(645, 25),
+                Location = new Point(15, 650),
+                Size = new Size(645, 20),
                 ForeColor = Color.Gray
             };
 
@@ -654,44 +670,96 @@ namespace HostsLauncher.UI
             pnlCustomProviders.Controls.Clear();
             if (config.CustomProviders == null) config.CustomProviders = ConfigManager.GetDefaultPresets();
 
-            int cardWidth = 590;
-            int cardHeight = 54;
-            int yOffset = 6;
+            int cardWidth = 595;
+            int cardHeight = 32;
+            int yOffset = 4;
+            int index = 0;
 
             foreach (var p in config.CustomProviders)
             {
+                Color bg = (index % 2 == 0) ? Color.White : Color.FromArgb(248, 250, 252);
                 Panel card = new Panel
                 {
-                    Location = new Point(6, yOffset),
+                    Location = new Point(4, yOffset),
                     Size = new Size(cardWidth, cardHeight),
                     BorderStyle = BorderStyle.FixedSingle,
-                    BackColor = Color.White
+                    BackColor = bg
                 };
 
                 CheckBox chk = new CheckBox
                 {
                     Text = p.Name,
                     Checked = p.Enabled,
-                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                    Location = new Point(8, 4),
-                    AutoSize = true
+                    Font = new Font("Segoe UI", 9F, p.Enabled ? FontStyle.Bold : FontStyle.Regular),
+                    Location = new Point(8, 5),
+                    Size = new Size(335, 20),
+                    AutoEllipsis = true
                 };
                 chk.CheckedChanged += (s, e) =>
                 {
                     p.Enabled = chk.Checked;
+                    chk.Font = new Font("Segoe UI", 9F, chk.Checked ? FontStyle.Bold : FontStyle.Regular);
                     ConfigManager.SaveConfig(config);
                 };
+
+                LinkLabel lnkSite = new LinkLabel
+                {
+                    Text = L10n.T("CardSiteBadge"),
+                    Location = new Point(348, 7),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 8.5F),
+                    LinkColor = Color.FromArgb(0, 102, 204),
+                    ActiveLinkColor = Color.FromArgb(0, 70, 150)
+                };
+                string siteUrl = !string.IsNullOrEmpty(p.SiteUrl) ? p.SiteUrl : p.Url;
+                if (toolTip != null) toolTip.SetToolTip(lnkSite, siteUrl);
+                lnkSite.LinkClicked += (s, e) =>
+                {
+                    try { Process.Start(siteUrl); }
+                    catch (Exception ex) { MessageBox.Show(L10n.T("ErrorOpenBrowser", ex.Message)); }
+                };
+
+                LinkLabel lnkRaw = new LinkLabel
+                {
+                    Text = L10n.T("CardRawBadge"),
+                    Location = new Point(410, 7),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 8.5F),
+                    LinkColor = Color.FromArgb(70, 80, 95),
+                    ActiveLinkColor = Color.FromArgb(40, 50, 65)
+                };
+                if (toolTip != null) toolTip.SetToolTip(lnkRaw, p.Url);
+                lnkRaw.LinkClicked += (s, e) =>
+                {
+                    try { Process.Start(p.Url); }
+                    catch (Exception ex) { MessageBox.Show(L10n.T("ErrorOpenRaw", ex.Message)); }
+                };
+
+                string shortDate = string.IsNullOrEmpty(p.LastUpdated) ? L10n.T("StatusNever") : (p.LastUpdated == "Отключен" ? L10n.T("StatusDisabled") : p.LastUpdated);
+                if (shortDate.Length > 16) shortDate = shortDate.Substring(0, 16);
+                Label lblUpd = new Label
+                {
+                    Text = shortDate,
+                    Location = new Point(475, 7),
+                    Size = new Size(88, 18),
+                    TextAlign = ContentAlignment.MiddleRight,
+                    ForeColor = Color.Gray,
+                    Font = new Font("Segoe UI", 8F)
+                };
+                if (toolTip != null) toolTip.SetToolTip(lblUpd, L10n.T("CardUpdatedPrefix") + (string.IsNullOrEmpty(p.LastUpdated) ? L10n.T("StatusNever") : p.LastUpdated));
 
                 Button btnDel = new Button
                 {
                     Text = "✕",
-                    Size = new Size(26, 22),
-                    Location = new Point(cardWidth - 32, 3),
+                    Size = new Size(22, 22),
+                    Location = new Point(cardWidth - 26, 4),
                     FlatStyle = FlatStyle.Flat,
-                    ForeColor = Color.IndianRed,
+                    ForeColor = Color.FromArgb(180, 100, 100),
                     Cursor = Cursors.Hand
                 };
                 btnDel.FlatAppearance.BorderSize = 0;
+                btnDel.MouseEnter += (s, e) => { btnDel.BackColor = Color.FromArgb(254, 226, 226); };
+                btnDel.MouseLeave += (s, e) => { btnDel.BackColor = Color.Transparent; };
                 btnDel.Click += (s, e) =>
                 {
                     if (MessageBox.Show(L10n.T("ConfirmDeleteSource", p.Name), L10n.T("Confirmation"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -702,50 +770,15 @@ namespace HostsLauncher.UI
                     }
                 };
 
-                LinkLabel lnkSite = new LinkLabel
-                {
-                    Text = L10n.T("CardSiteLink"),
-                    Location = new Point(28, 28),
-                    AutoSize = true,
-                    Font = new Font("Segoe UI", 8.5F)
-                };
-                string siteUrl = !string.IsNullOrEmpty(p.SiteUrl) ? p.SiteUrl : p.Url;
-                lnkSite.LinkClicked += (s, e) =>
-                {
-                    try { Process.Start(siteUrl); }
-                    catch (Exception ex) { MessageBox.Show(L10n.T("ErrorOpenBrowser", ex.Message)); }
-                };
-
-                LinkLabel lnkRaw = new LinkLabel
-                {
-                    Text = L10n.T("CardRawLink"),
-                    Location = new Point(140, 28),
-                    AutoSize = true,
-                    Font = new Font("Segoe UI", 8.5F)
-                };
-                lnkRaw.LinkClicked += (s, e) =>
-                {
-                    try { Process.Start(p.Url); }
-                    catch (Exception ex) { MessageBox.Show(L10n.T("ErrorOpenRaw", ex.Message)); }
-                };
-
-                Label lblUpd = new Label
-                {
-                    Text = L10n.T("CardUpdatedPrefix") + (string.IsNullOrEmpty(p.LastUpdated) ? L10n.T("StatusNever") : p.LastUpdated),
-                    Location = new Point(275, 28),
-                    AutoSize = true,
-                    ForeColor = Color.DarkSlateGray,
-                    Font = new Font("Segoe UI", 8.5F)
-                };
-
                 card.Controls.Add(chk);
-                card.Controls.Add(btnDel);
                 card.Controls.Add(lnkSite);
                 card.Controls.Add(lnkRaw);
                 card.Controls.Add(lblUpd);
+                card.Controls.Add(btnDel);
 
                 pnlCustomProviders.Controls.Add(card);
-                yOffset += cardHeight + 6;
+                yOffset += cardHeight + 3;
+                index++;
             }
 
             pnlCustomProviders.ResumeLayout();
@@ -834,7 +867,7 @@ namespace HostsLauncher.UI
         private void BtnCreateManagerShortcut_Click(object sender, EventArgs e)
         {
             string exePath = Application.ExecutablePath;
-            string iconLoc = @"C:\Windows\System32\shell32.dll,21";
+            string iconLoc = exePath + ",0";
             CreateDesktopShortcut(exePath, "", iconLoc, L10n.T("ShortcutManagerName"), L10n.T("ShortcutManagerDesc"));
         }
 
