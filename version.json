@@ -1,9 +1,9 @@
 {
   "version": "1.3.0",
-  "name": "hosts-launcher",
+  "name": "hosts-file-manager",
   "displayName": "Hosts Launcher & Manager",
   "description": "Windows hosts file manager, taskbar launcher, subscription auto-sync and scheduler",
   "author": "MaximXR",
-  "repository": "https://github.com/MaximXR/hosts-launcher",
+  "repository": "https://github.com/MaximXR/hosts-file-manager",
   "license": "MIT"
 }

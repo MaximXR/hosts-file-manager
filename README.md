@@ -16,7 +16,7 @@
 
 **Hosts Launcher & Manager** — портативный набор инструментов для Windows, позволяющий открывать системный файл hosts в один клик прямо из меню «Пуск» (или панели задач) в выбранном редакторе с правами администратора, управлять проверенными подписками правил обхода и блокировки рекламы и автоматически синхронизировать их в фоновом режиме.
 
-👉 **[Скачать свежий релиз (portable .zip)](https://github.com/MaximXR/hosts-launcher/releases/latest)** • Портативно • Без установки • Открытый исходный код
+👉 **[Скачать свежий релиз (portable .zip)](https://github.com/MaximXR/hosts-file-manager/releases/latest)** • Портативно • Без установки • Открытый исходный код
 
 ---
 
@@ -125,7 +125,7 @@ HostsLauncher/
 
 ### Установка и запуск
 
-1. Скачайте архив со страницы **[последнего релиза](https://github.com/MaximXR/hosts-launcher/releases/latest)**.
+1. Скачайте архив со страницы **[последнего релиза](https://github.com/MaximXR/hosts-file-manager/releases/latest)**.
 2. Распакуйте содержимое архива в любую постоянную папку (например, `C:\Tools\HostsLauncher` или `%USERPROFILE%\Tools\HostsLauncher`).
 3. Запустите `HostsManager.exe`, настройте удобный редактор и нажмите кнопку **«🚀 Создать ярлык для файла hosts»**.
 4. Нажмите правой кнопкой мыши по созданному ярлыку на Рабочем столе ➔ **«Закрепить на начальном экране» (в меню «Пуск»)** или **«Закрепить на панели задач»**.
@@ -146,7 +146,7 @@ HostsLauncher/
 
 **Hosts Launcher & Manager** is a portable Windows utility suite designed to launch the system hosts file in your preferred text editor with Administrator privileges in a single click directly from the Windows Start Menu (or taskbar), manage curated anti-censorship and ad-blocking subscriptions, and synchronize rules automatically in the background.
 
-👉 **[Download Latest Release (portable .zip)](https://github.com/MaximXR/hosts-launcher/releases/latest)** • Portable • No installation required • Open Source
+👉 **[Download Latest Release (portable .zip)](https://github.com/MaximXR/hosts-file-manager/releases/latest)** • Portable • No installation required • Open Source
 
 ---
 
@@ -255,7 +255,7 @@ HostsLauncher/
 
 ### Installation and Usage
 
-1. Download the archive from the **[latest release page](https://github.com/MaximXR/hosts-launcher/releases/latest)**.
+1. Download the archive from the **[latest release page](https://github.com/MaximXR/hosts-file-manager/releases/latest)**.
 2. Extract the archive into a permanent folder (e.g. `C:\Tools\HostsLauncher` or `%USERPROFILE%\Tools\HostsLauncher`).
 3. Run `HostsManager.exe`, select your preferred editor, and click **«🚀 Create hosts file shortcut»**.
 4. Right-click the newly generated Desktop shortcut ➔ **«Pin to Start» (Start Menu)** or **«Pin to taskbar»**.
