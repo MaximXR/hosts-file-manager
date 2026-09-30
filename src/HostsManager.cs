@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using System.Text;
@@ -194,6 +195,42 @@ namespace HostsManager
                 if (p != null) p.WaitForExit(3000);
             }
             catch { }
+        }
+
+        public static bool CheckTaskStatus(out string nextRun, out string state)
+        {
+            nextRun = "";
+            state = "";
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo
+                {
+                    FileName = "schtasks.exe",
+                    Arguments = "/query /tn \"HostsManagerAutoUpdate\" /fo CSV /nh",
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true
+                };
+                Process p = Process.Start(psi);
+                if (p != null)
+                {
+                    string output = p.StandardOutput.ReadToEnd();
+                    p.WaitForExit(3000);
+                    if (p.ExitCode == 0 && !string.IsNullOrEmpty(output))
+                    {
+                        string[] parts = output.Trim().Split(new[] { "\",\"" }, StringSplitOptions.None);
+                        if (parts.Length >= 3)
+                        {
+                            nextRun = parts[1].Trim('\"');
+                            state = parts[2].Trim('\"', '\r', '\n');
+                            return true;
+                        }
+                        return true;
+                    }
+                }
+            }
+            catch { }
+            return false;
         }
 
         [STAThread]
@@ -424,6 +461,9 @@ namespace HostsManager
 
     public class MainForm : Form
     {
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
         private TabControl tabs;
         private TabPage tabShortcuts;
         private TabPage tabProviders;
@@ -454,10 +494,11 @@ namespace HostsManager
         private Button btnRemoveCustom;
         private Button btnResetPresets;
 
+        private Label lblTaskStatus;
         private TextBox txtSchedulerCmd;
         private Button btnCopyCmd;
+        private Button btnToggleTask;
         private Button btnOpenTaskScheduler;
-        private Button btnAutoCreateTask;
 
         private Button btnUpdateNow;
         private Label lblProviderStatus;
@@ -474,7 +515,7 @@ namespace HostsManager
         private void InitUI()
         {
             this.Text = "Hosts Manager & Shortcut Creator";
-            this.Size = new Size(690, 710);
+            this.Size = new Size(690, 715);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -694,22 +735,23 @@ namespace HostsManager
             {
                 Text = "3. Фоновое автообновление (Планировщик задач Windows)",
                 Location = new Point(15, 418),
-                Size = new Size(645, 135)
+                Size = new Size(645, 140)
             };
 
-            Label lblSchedInfo = new Label
+            lblTaskStatus = new Label
             {
-                Text = "Для тихого фонового автообновления hosts используется команда:",
+                Text = "Статус: Проверка задачи...",
                 Location = new Point(15, 22),
-                AutoSize = true
+                Size = new Size(615, 20),
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
 
             string cmdString = "\"" + Application.ExecutablePath + "\" /update-silent";
             txtSchedulerCmd = new TextBox
             {
                 Text = cmdString,
-                Location = new Point(15, 45),
-                Size = new Size(490, 23),
+                Location = new Point(15, 48),
+                Size = new Size(505, 23),
                 ReadOnly = true,
                 BackColor = Color.WhiteSmoke
             };
@@ -717,8 +759,8 @@ namespace HostsManager
             btnCopyCmd = new Button
             {
                 Text = "📋 Копировать",
-                Location = new Point(515, 44),
-                Size = new Size(115, 25)
+                Location = new Point(525, 47),
+                Size = new Size(105, 25)
             };
             btnCopyCmd.Click += (s, e) =>
             {
@@ -726,44 +768,43 @@ namespace HostsManager
                 MessageBox.Show("Команда скопирована в буфер обмена!", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
             };
 
-            btnOpenTaskScheduler = new Button
+            btnToggleTask = new Button
             {
-                Text = "📅 Открыть Планировщик Windows (taskschd.msc)",
-                Location = new Point(15, 80),
-                Size = new Size(330, 36),
+                Location = new Point(15, 82),
+                Size = new Size(310, 36),
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
-            btnOpenTaskScheduler.Click += (s, e) =>
+            btnToggleTask.Click += BtnToggleTask_Click;
+
+            btnOpenTaskScheduler = new Button
             {
-                try
-                {
-                    Process.Start("taskschd.msc");
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Ошибка запуска taskschd.msc: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                Text = "📅 Открыть в Планировщике Windows",
+                Location = new Point(335, 82),
+                Size = new Size(295, 36),
+                Font = new Font("Segoe UI", 9F)
+            };
+            btnOpenTaskScheduler.Click += BtnOpenTaskScheduler_Click;
+
+            Label lblPathHint = new Label
+            {
+                Text = "📍 В Планировщике задача находится в папке: «Библиотека планировщика заданий»",
+                Location = new Point(15, 120),
+                Size = new Size(615, 18),
+                ForeColor = Color.Gray
             };
 
-            btnAutoCreateTask = new Button
-            {
-                Text = "⚡ Создать задачу (раз в день)",
-                Location = new Point(360, 80),
-                Size = new Size(270, 36)
-            };
-            btnAutoCreateTask.Click += BtnAutoCreateTask_Click;
-
-            gbScheduler.Controls.Add(lblSchedInfo);
+            gbScheduler.Controls.Add(lblTaskStatus);
             gbScheduler.Controls.Add(txtSchedulerCmd);
             gbScheduler.Controls.Add(btnCopyCmd);
+            gbScheduler.Controls.Add(btnToggleTask);
             gbScheduler.Controls.Add(btnOpenTaskScheduler);
-            gbScheduler.Controls.Add(btnAutoCreateTask);
+            gbScheduler.Controls.Add(lblPathHint);
 
             // Кнопка синхронизации
             btnUpdateNow = new Button
             {
                 Text = "🔄 Синхронизировать hosts сейчас",
-                Location = new Point(15, 562),
+                Location = new Point(15, 568),
                 Size = new Size(645, 44),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240)
@@ -773,7 +814,7 @@ namespace HostsManager
             lblProviderStatus = new Label
             {
                 Text = "Личные ручные записи в hosts изолированы и надежно защищены от перезаписи.",
-                Location = new Point(15, 615),
+                Location = new Point(15, 620),
                 Size = new Size(645, 30),
                 ForeColor = Color.Gray
             };
@@ -812,6 +853,28 @@ namespace HostsManager
             lblGeoHideInfo.Text = "Статус: Обновлено: " + (string.IsNullOrEmpty(config.GeoHideLastUpdated) ? "Никогда" : config.GeoHideLastUpdated);
 
             RefreshCustomProvidersList();
+            RefreshTaskStatus();
+        }
+
+        private void RefreshTaskStatus()
+        {
+            string nextRun, state;
+            bool exists = Program.CheckTaskStatus(out nextRun, out state);
+
+            if (exists)
+            {
+                lblTaskStatus.Text = string.Format("🟢 Задача активна в Windows. Следующий запуск: {0} ({1})", nextRun, state);
+                lblTaskStatus.ForeColor = Color.DarkGreen;
+                btnToggleTask.Text = "🗑️ Удалить задачу из Планировщика";
+                btnToggleTask.BackColor = Color.FromArgb(255, 235, 235);
+            }
+            else
+            {
+                lblTaskStatus.Text = "⚪ Задача не создана (фоновое автообновление выключено)";
+                lblTaskStatus.ForeColor = Color.DimGray;
+                btnToggleTask.Text = "⚡ Создать задачу (раз в день в 09:00)";
+                btnToggleTask.BackColor = Color.FromArgb(235, 255, 240);
+            }
         }
 
         private void RefreshCustomProvidersList()
@@ -952,7 +1015,6 @@ namespace HostsManager
             lblProviderStatus.Text = "⏳ Синхронизация правил... Пожалуйста, подождите.";
             lblProviderStatus.ForeColor = Color.Blue;
 
-            // Запускаем синхронизацию в фоновом потоке, чтобы интерфейс НИКОГДА не зависал!
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 bool res = Program.UpdateHostsRoutine(false);
@@ -978,26 +1040,78 @@ namespace HostsManager
             });
         }
 
-        private void BtnAutoCreateTask_Click(object sender, EventArgs e)
+        private void BtnToggleTask_Click(object sender, EventArgs e)
         {
+            string nextRun, state;
+            bool exists = Program.CheckTaskStatus(out nextRun, out state);
+
             try
             {
                 string taskName = "HostsManagerAutoUpdate";
-                string exePath = Application.ExecutablePath;
-
                 ProcessStartInfo psi = new ProcessStartInfo();
                 psi.FileName = "schtasks.exe";
-                psi.Arguments = string.Format("/create /tn \"{0}\" /tr \"\\\"{1}\\\" /update-silent\" /sc daily /st 09:00 /rl highest /f", taskName, exePath);
                 psi.Verb = "runas";
                 psi.UseShellExecute = true;
-                Process p = Process.Start(psi);
-                if (p != null) p.WaitForExit();
 
-                MessageBox.Show("Задача успешно зарегистрирована в Планировщике Windows!\nВремя запуска: каждый день в 09:00.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                if (exists)
+                {
+                    psi.Arguments = string.Format("/delete /tn \"{0}\" /f", taskName);
+                    Process p = Process.Start(psi);
+                    if (p != null) p.WaitForExit();
+                    RefreshTaskStatus();
+                    MessageBox.Show("Задача успешно удалена из Планировщика Windows.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    string exePath = Application.ExecutablePath;
+                    psi.Arguments = string.Format("/create /tn \"{0}\" /tr \"\\\"{1}\\\" /update-silent\" /sc daily /st 09:00 /rl highest /f", taskName, exePath);
+                    Process p = Process.Start(psi);
+                    if (p != null) p.WaitForExit();
+                    RefreshTaskStatus();
+                    MessageBox.Show("Задача успешно создана в Планировщике Windows!\nЗапуск: каждый день в 09:00 с наивысшими правами.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Ошибка создания задачи: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Ошибка: " + ex.Message, "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private void BtnOpenTaskScheduler_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                Process p = Process.Start("taskschd.msc");
+                if (p != null)
+                {
+                    ThreadPool.QueueUserWorkItem(_ =>
+                    {
+                        for (int i = 0; i < 25; i++)
+                        {
+                            Thread.Sleep(250);
+                            p.Refresh();
+                            if (p.MainWindowHandle != IntPtr.Zero)
+                            {
+                                try
+                                {
+                                    SetForegroundWindow(p.MainWindowHandle);
+                                    Thread.Sleep(150);
+                                    SendKeys.SendWait("{DOWN}"); // Выбираем "Библиотека планировщика заданий"
+                                    Thread.Sleep(150);
+                                    SendKeys.SendWait("{TAB}");  // Переходим в список задач справа
+                                    Thread.Sleep(150);
+                                    SendKeys.SendWait("H");      // Наводим курсор на HostsManagerAutoUpdate
+                                }
+                                catch { }
+                                break;
+                            }
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка запуска taskschd.msc: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
