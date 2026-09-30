@@ -1,4 +1,8 @@
-# Hosts Launcher & Manager
+<div align="center">
+  <img src="resources/icon.png" width="128" height="128" alt="Hosts Launcher Logo" />
+  <h1>Hosts Launcher & Manager</h1>
+  <p><b>Быстрый доступ к hosts из панели задач Windows, автосинхронизация подписок и умный планировщик</b></p>
+</div>
 
 [Русский](#русский) | [English](#english)
 
@@ -12,7 +16,7 @@
 
 **Hosts Launcher & Manager** — портативный набор инструментов для Windows, позволяющий открывать системный файл hosts в один клик из панели задач в выбранном редакторе с правами администратора, управлять проверенными подписками правил обхода и блокировки рекламы и автоматически синхронизировать их в фоновом режиме.
 
-👉 **[Скачать HostsLauncher-v1.2.0-portable.zip](https://github.com/MaximXR/hosts-launcher/releases/latest)** • Портативно • Без установки • Открытый исходный код
+👉 **[Скачать HostsLauncher-v1.2.1-portable.zip](https://github.com/MaximXR/hosts-launcher/releases/latest)** • Портативно • Без установки • Открытый исходный код
 
 ---
 
@@ -113,7 +117,7 @@ HostsLauncher/
 
 **Hosts Launcher & Manager** is a portable Windows utility suite designed to launch the system hosts file in your preferred text editor with Administrator privileges in a single click from the Windows taskbar, manage curated anti-censorship and ad-blocking subscriptions, and synchronize rules automatically in the background.
 
-👉 **[Download HostsLauncher-v1.2.0-portable.zip](https://github.com/MaximXR/hosts-launcher/releases/latest)** • Portable • No installation required • Open Source
+👉 **[Download HostsLauncher-v1.2.1-portable.zip](https://github.com/MaximXR/hosts-launcher/releases/latest)** • Portable • No installation required • Open Source
 
 ---
 
