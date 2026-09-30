@@ -20,6 +20,11 @@ namespace HostsLauncher.UI
         private const int ICON_SMALL = 0;
         private const int ICON_BIG = 1;
 
+        [DllImport("shell32.dll")]
+        private static extern void SHChangeNotify(int wEventId, int uFlags, IntPtr dwItem1, IntPtr dwItem2);
+        private const int SHCNE_ASSOCCHANGED = 0x08000000;
+        private const int SHCNF_IDLIST = 0;
+
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
@@ -867,6 +872,8 @@ namespace HostsLauncher.UI
                 shortcut.Description = description;
                 shortcut.Save();
 
+                try { SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero); } catch { }
+
                 MessageBox.Show(
                     L10n.T("ShortcutCreatedSuccess", linkName),
                     L10n.T("Done"),
@@ -915,7 +922,9 @@ namespace HostsLauncher.UI
             }
             else if (cboIcon.SelectedIndex == 3)
             {
-                iconLoc = Application.ExecutablePath + ",0";
+                string appIcoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"resources\app.ico");
+                if (!File.Exists(appIcoPath)) EnsureResourceExtracted("app.ico", appIcoPath);
+                iconLoc = File.Exists(appIcoPath) ? (appIcoPath + ",0") : (Application.ExecutablePath + ",0");
             }
 
             string linkName = string.IsNullOrEmpty(txtShortcutName.Text) ? L10n.T("ShortcutDefaultName") : txtShortcutName.Text.Trim();
@@ -958,7 +967,9 @@ namespace HostsLauncher.UI
             }
             else if (sel == 2)
             {
-                iconLoc = exePath + ",0";
+                string appIcoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"resources\app.ico");
+                if (!File.Exists(appIcoPath)) EnsureResourceExtracted("app.ico", appIcoPath);
+                iconLoc = File.Exists(appIcoPath) ? (appIcoPath + ",0") : (exePath + ",0");
             }
 
             CreateDesktopShortcut(exePath, "/update-now", iconLoc, L10n.T("ShortcutUpdateName"), L10n.T("ShortcutUpdateDesc"));
@@ -995,7 +1006,13 @@ namespace HostsLauncher.UI
         private void BtnCreateManagerShortcut_Click(object sender, EventArgs e)
         {
             string exePath = Application.ExecutablePath;
-            string iconLoc = exePath + ",0";
+            string appIcoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"resources\app.ico");
+            if (!File.Exists(appIcoPath))
+            {
+                EnsureResourceExtracted("app.ico", appIcoPath);
+            }
+
+            string iconLoc = File.Exists(appIcoPath) ? (appIcoPath + ",0") : (exePath + ",0");
             CreateDesktopShortcut(exePath, "", iconLoc, L10n.T("ShortcutManagerName"), L10n.T("ShortcutManagerDesc"));
         }
 
