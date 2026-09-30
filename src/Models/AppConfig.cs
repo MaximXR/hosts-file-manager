@@ -39,6 +39,8 @@ namespace HostsLauncher.Models
         public int TaskScheduleIndex { get; set; }
         public bool TaskOnlyIfIdle { get; set; }
         public string Language { get; set; }
+        public int WindowWidth { get; set; }
+        public int WindowHeight { get; set; }
 
         public AppConfig()
         {
@@ -53,6 +55,8 @@ namespace HostsLauncher.Models
             TaskScheduleIndex = 0;
             TaskOnlyIfIdle = true;
             Language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLower() == "ru" ? "ru" : "en";
+            WindowWidth = 690;
+            WindowHeight = 690;
         }
     }
 
@@ -123,6 +127,8 @@ namespace HostsLauncher.Models
                         {
                             cfg.Language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLower() == "ru" ? "ru" : "en";
                         }
+                        if (cfg.WindowWidth < 600) cfg.WindowWidth = 690;
+                        if (cfg.WindowHeight < 560) cfg.WindowHeight = 690;
                         return cfg;
                     }
                 }

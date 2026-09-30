@@ -170,6 +170,23 @@ namespace HostsLauncher.UI
                     notifyIcon.Dispose();
                     notifyIcon = null;
                 }
+
+                if (this.WindowState == FormWindowState.Normal)
+                {
+                    config.WindowWidth = this.Width;
+                    config.WindowHeight = this.Height;
+                    ConfigManager.SaveConfig(config);
+                }
+            };
+
+            this.ResizeEnd += (s, e) =>
+            {
+                if (this.WindowState == FormWindowState.Normal)
+                {
+                    config.WindowWidth = this.Width;
+                    config.WindowHeight = this.Height;
+                    ConfigManager.SaveConfig(config);
+                }
             };
 
             InitUI();
@@ -179,11 +196,23 @@ namespace HostsLauncher.UI
 
         private void InitUI()
         {
-            this.Size = new Size(690, 825);
+            int w = (config.WindowWidth >= 600) ? config.WindowWidth : 690;
+            int h = (config.WindowHeight >= 560) ? config.WindowHeight : 690;
+            try
+            {
+                Rectangle workArea = Screen.PrimaryScreen.WorkingArea;
+                if (h > workArea.Height) h = Math.Max(560, workArea.Height - 30);
+                if (w > workArea.Width) w = Math.Max(690, workArea.Width - 30);
+            }
+            catch { }
+
+            this.Size = new Size(w, h);
+            this.MinimumSize = new Size(690, 560);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedSingle;
-            this.MaximizeBox = false;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
             this.ShowInTaskbar = true;
+            this.DoubleBuffered = true;
 
             pnlHeader = new Panel
             {
@@ -244,16 +273,36 @@ namespace HostsLauncher.UI
             pnlHeader.Controls.Add(btnOpenHostsHeader);
             pnlHeader.Controls.Add(lblLang);
             pnlHeader.Controls.Add(cboLanguage);
+            pnlHeader.Resize += (s, e) =>
+            {
+                if (cboLanguage != null && lblLang != null)
+                {
+                    cboLanguage.Left = pnlHeader.ClientSize.Width - cboLanguage.Width - 16;
+                    lblLang.Left = cboLanguage.Left - lblLang.Width - 10;
+                }
+            };
 
             tabs = new TabControl { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 9F) };
 
-            tabShortcuts = new TabPage();
+            tabShortcuts = new TabPage { AutoScroll = true };
             InitShortcutsTab();
             tabs.TabPages.Add(tabShortcuts);
 
             tabProviders = new TabPage();
             InitProvidersTab();
             tabs.TabPages.Add(tabProviders);
+
+            tabs.SelectedIndexChanged += (s, e) =>
+            {
+                if (tabs.SelectedTab == tabProviders) LayoutProvidersTab();
+                else if (tabs.SelectedTab == tabShortcuts) LayoutShortcutsTab();
+            };
+
+            this.Resize += (s, e) =>
+            {
+                LayoutProvidersTab();
+                LayoutShortcutsTab();
+            };
 
             this.Controls.Add(tabs);
             this.Controls.Add(pnlHeader);
@@ -420,6 +469,28 @@ namespace HostsLauncher.UI
             tabShortcuts.Controls.Add(gbUpdateShortcut);
             tabShortcuts.Controls.Add(gbManagerShortcut);
             tabShortcuts.Controls.Add(lblShortcutHint);
+
+            tabShortcuts.Resize += (s, e) => LayoutShortcutsTab();
+            LayoutShortcutsTab();
+        }
+
+        internal void LayoutShortcutsTab()
+        {
+            if (tabShortcuts == null || gbHostsShortcut == null || gbUpdateShortcut == null || gbManagerShortcut == null)
+                return;
+
+            int clientW = tabShortcuts.ClientSize.Width;
+            if (clientW < 500)
+            {
+                clientW = Math.Max(0, this.ClientSize.Width - 16);
+            }
+            if (clientW <= 0) return;
+            int contentW = Math.Max(645, clientW - 30);
+
+            gbHostsShortcut.Width = contentW;
+            gbUpdateShortcut.Width = contentW;
+            gbManagerShortcut.Width = contentW;
+            if (lblShortcutHint != null) lblShortcutHint.Width = contentW;
         }
 
         private void InitProvidersTab()
@@ -644,6 +715,82 @@ namespace HostsLauncher.UI
             tabProviders.Controls.Add(gbScheduler);
             tabProviders.Controls.Add(btnUpdateNow);
             tabProviders.Controls.Add(lblProviderStatus);
+
+            tabProviders.Resize += (s, e) => LayoutProvidersTab();
+            LayoutProvidersTab();
+        }
+
+        internal void LayoutProvidersTab()
+        {
+            if (tabProviders == null || gbGeo == null || gbCustom == null || gbScheduler == null || btnUpdateNow == null || lblProviderStatus == null)
+                return;
+
+            int clientW = tabProviders.ClientSize.Width;
+            int clientH = tabProviders.ClientSize.Height;
+            if (clientW < 500 || clientH < 300)
+            {
+                clientW = Math.Max(0, this.ClientSize.Width - 16);
+                clientH = Math.Max(0, this.ClientSize.Height - (pnlHeader != null ? pnlHeader.Height : 36) - 28);
+            }
+            if (clientW <= 0 || clientH <= 0) return;
+
+            int contentW = Math.Max(645, clientW - 30);
+
+            // 1. Верхний фиксированный блок: GeoHide
+            gbGeo.Location = new Point(15, 6);
+            gbGeo.Size = new Size(contentW, 114);
+
+            // 2. Нижние фиксированные блоки: статус, кнопка синхронизации, планировщик
+            lblProviderStatus.Size = new Size(contentW, 20);
+            lblProviderStatus.Location = new Point(15, clientH - 24);
+
+            btnUpdateNow.Size = new Size(contentW, 38);
+            btnUpdateNow.Location = new Point(15, lblProviderStatus.Top - 42);
+
+            gbScheduler.Size = new Size(contentW, 148);
+            gbScheduler.Location = new Point(15, btnUpdateNow.Top - 154);
+
+            if (lblTaskStatus != null) lblTaskStatus.Width = gbScheduler.ClientSize.Width - 30;
+            if (lblPathHint != null) lblPathHint.Width = gbScheduler.ClientSize.Width - 30;
+
+            // 3. Динамический блок подписок (сжимается и растягивается строго этот раздел)
+            int customTop = gbGeo.Bottom + 6; // 126
+            int customBottom = gbScheduler.Top - 6;
+            int customH = Math.Max(90, customBottom - customTop);
+
+            gbCustom.Location = new Point(15, customTop);
+            gbCustom.Size = new Size(contentW, customH);
+
+            int btnRowY = Math.Max(26, gbCustom.ClientSize.Height - 34);
+            if (btnAddCustom != null) btnAddCustom.Location = new Point(12, btnRowY);
+            if (btnResetPresets != null) btnResetPresets.Location = new Point(195, btnRowY);
+            if (lblCustomHint != null) lblCustomHint.Location = new Point(370, btnRowY - 2);
+
+            int pnlH = Math.Max(30, btnRowY - 28);
+            int pnlW = Math.Max(200, gbCustom.ClientSize.Width - 24);
+            if (pnlCustomProviders != null)
+            {
+                pnlCustomProviders.Location = new Point(12, 22);
+                pnlCustomProviders.Size = new Size(pnlW, pnlH);
+
+                int innerCardWidth = Math.Max(590, pnlCustomProviders.ClientSize.Width - (pnlCustomProviders.VerticalScroll.Visible ? 22 : 8));
+                foreach (Control c in pnlCustomProviders.Controls)
+                {
+                    Panel card = c as Panel;
+                    if (card != null)
+                    {
+                        card.Width = innerCardWidth;
+                        foreach (Control child in card.Controls)
+                        {
+                            if (child.Name == "btnDel") child.Left = innerCardWidth - 26;
+                            else if (child.Name == "lblUpd") child.Left = innerCardWidth - 120;
+                            else if (child.Name == "lnkRaw") child.Left = innerCardWidth - 185;
+                            else if (child.Name == "lnkSite") child.Left = innerCardWidth - 247;
+                            else if (child.Name == "chkProvider") child.Width = Math.Max(180, innerCardWidth - 260);
+                        }
+                    }
+                }
+            }
         }
 
         public void ApplyLocalization()
@@ -822,7 +969,7 @@ namespace HostsLauncher.UI
             pnlCustomProviders.Controls.Clear();
             if (config.CustomProviders == null) config.CustomProviders = ConfigManager.GetDefaultPresets();
 
-            int cardWidth = 595;
+            int cardWidth = Math.Max(590, pnlCustomProviders.ClientSize.Width - (pnlCustomProviders.VerticalScroll.Visible ? 22 : 8));
             int cardHeight = 32;
             int yOffset = 4;
             int index = 0;
@@ -840,11 +987,12 @@ namespace HostsLauncher.UI
 
                 CheckBox chk = new CheckBox
                 {
+                    Name = "chkProvider",
                     Text = p.Name,
                     Checked = p.Enabled,
                     Font = new Font("Segoe UI", 9F, p.Enabled ? FontStyle.Bold : FontStyle.Regular),
                     Location = new Point(8, 5),
-                    Size = new Size(335, 20),
+                    Size = new Size(Math.Max(180, cardWidth - 260), 20),
                     AutoEllipsis = true
                 };
                 chk.CheckedChanged += (s, e) =>
@@ -856,8 +1004,9 @@ namespace HostsLauncher.UI
 
                 LinkLabel lnkSite = new LinkLabel
                 {
+                    Name = "lnkSite",
                     Text = L10n.T("CardSiteBadge"),
-                    Location = new Point(348, 7),
+                    Location = new Point(cardWidth - 247, 7),
                     AutoSize = true,
                     Font = new Font("Segoe UI", 8.5F),
                     LinkColor = Color.FromArgb(0, 102, 204),
@@ -873,8 +1022,9 @@ namespace HostsLauncher.UI
 
                 LinkLabel lnkRaw = new LinkLabel
                 {
+                    Name = "lnkRaw",
                     Text = L10n.T("CardRawBadge"),
-                    Location = new Point(410, 7),
+                    Location = new Point(cardWidth - 185, 7),
                     AutoSize = true,
                     Font = new Font("Segoe UI", 8.5F),
                     LinkColor = Color.FromArgb(70, 80, 95),
@@ -891,8 +1041,9 @@ namespace HostsLauncher.UI
                 if (shortDate.Length > 16) shortDate = shortDate.Substring(0, 16);
                 Label lblUpd = new Label
                 {
+                    Name = "lblUpd",
                     Text = shortDate,
-                    Location = new Point(475, 7),
+                    Location = new Point(cardWidth - 120, 7),
                     Size = new Size(88, 18),
                     TextAlign = ContentAlignment.MiddleRight,
                     ForeColor = Color.Gray,
@@ -902,6 +1053,7 @@ namespace HostsLauncher.UI
 
                 Button btnDel = new Button
                 {
+                    Name = "btnDel",
                     Text = "✕",
                     Size = new Size(22, 22),
                     Location = new Point(cardWidth - 26, 4),

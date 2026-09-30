@@ -31,6 +31,7 @@ namespace HostsLauncher.Tests
             RunTest("UI: Form Controls Non-Empty on Startup (Russian)", Test_UI_ControlsNonEmpty_Russian);
             RunTest("UI: Form Controls Non-Empty & Localized on English Switch", Test_UI_ControlsNonEmpty_English);
             RunTest("UI: Recursive Deep Check of All Visual Controls", Test_UI_RecursiveControlsCheck);
+            RunTest("UI: Elastic Custom Providers Section Dynamic Resizing", Test_UI_ElasticCustomSectionResizing);
 
             Console.WriteLine();
             Console.WriteLine("=================================================");
@@ -207,6 +208,8 @@ namespace HostsLauncher.Tests
             cfg.GeoHideRegion = "eu";
             cfg.AlwaysAdmin = true;
             cfg.Language = "en";
+            cfg.WindowWidth = 750;
+            cfg.WindowHeight = 820;
 
             string tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "test_config_" + Guid.NewGuid().ToString("N") + ".json");
             try
@@ -219,6 +222,8 @@ namespace HostsLauncher.Tests
                 AssertEqual("eu", loaded.GeoHideRegion, "Loaded GeoHideRegion mismatch");
                 AssertEqual(true, loaded.AlwaysAdmin, "Loaded AlwaysAdmin mismatch");
                 AssertEqual("en", loaded.Language, "Loaded Language mismatch");
+                AssertEqual(750, loaded.WindowWidth, "Loaded WindowWidth mismatch");
+                AssertEqual(820, loaded.WindowHeight, "Loaded WindowHeight mismatch");
                 Assert(loaded.CustomProviders != null && loaded.CustomProviders.Count > 0, "Loaded CustomProviders must not be empty");
             }
             finally
@@ -235,6 +240,10 @@ namespace HostsLauncher.Tests
 
             using (MainForm form = new MainForm(cfg))
             {
+                Assert(form.FormBorderStyle == FormBorderStyle.Sizable, "Form should be resizable (Sizable)");
+                Assert(form.MaximizeBox, "MaximizeBox should be true");
+                Assert(form.MinimumSize.Height >= 560, "MinimumSize height should be >= 560");
+
                 // CRITICAL CHECK: The exact bug from user's screenshot
                 Assert(!string.IsNullOrWhiteSpace(form.Text), "Form Window Title is empty!");
                 Assert(!string.IsNullOrWhiteSpace(form.tabShortcuts.Text), "tabShortcuts title is empty!");
@@ -361,6 +370,37 @@ namespace HostsLauncher.Tests
                 {
                     CheckControlRecursive(c);
                 }
+            }
+        }
+
+        private static void Test_UI_ElasticCustomSectionResizing()
+        {
+            AppConfig cfg = new AppConfig();
+            using (MainForm form = new MainForm(cfg))
+            {
+                form.Size = new System.Drawing.Size(690, 700);
+                form.LayoutProvidersTab();
+
+                int geoH1 = form.gbGeo.Height;
+                int schedH1 = form.gbScheduler.Height;
+                int btnH1 = form.btnUpdateNow.Height;
+                int customH1 = form.gbCustom.Height;
+
+                // Expand window height by 150px
+                form.Size = new System.Drawing.Size(690, 850);
+                form.LayoutProvidersTab();
+                AssertEqual(geoH1, form.gbGeo.Height, "gbGeo height must remain fixed when form expands");
+                AssertEqual(schedH1, form.gbScheduler.Height, "gbScheduler height must remain fixed when form expands");
+                AssertEqual(btnH1, form.btnUpdateNow.Height, "btnUpdateNow height must remain fixed when form expands");
+                Assert(form.gbCustom.Height > customH1 + 100, string.Format("gbCustom must expand elastically (was: {0}, now: {1})", customH1, form.gbCustom.Height));
+
+                // Shrink window height to 600px
+                form.Size = new System.Drawing.Size(690, 600);
+                form.LayoutProvidersTab();
+                AssertEqual(geoH1, form.gbGeo.Height, "gbGeo height must remain fixed when form shrinks");
+                AssertEqual(schedH1, form.gbScheduler.Height, "gbScheduler height must remain fixed when form shrinks");
+                AssertEqual(btnH1, form.btnUpdateNow.Height, "btnUpdateNow height must remain fixed when form shrinks");
+                Assert(form.gbCustom.Height < customH1, string.Format("gbCustom must compress elastically (was: {0}, now: {1})", customH1, form.gbCustom.Height));
             }
         }
     }
