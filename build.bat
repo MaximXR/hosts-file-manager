@@ -17,12 +17,13 @@ if "%CSC%"=="" (
 set "DIST_DIR=%~dp0dist-win-unpacked"
 if not exist "%DIST_DIR%" mkdir "%DIST_DIR%"
 
-echo [1/2] Compiling HostsLauncher.exe (Fast Taskbar Runner)...
-"%CSC%" /nologo /target:winexe /optimize+ /out:"%DIST_DIR%\HostsLauncher.exe" "%~dp0src\Program.cs"
+echo [1/2] Compiling OpenHostsFile.exe (Fast Taskbar Runner)...
+"%CSC%" /nologo /target:winexe /optimize+ /out:"%DIST_DIR%\OpenHostsFile.exe" "%~dp0src\Program.cs"
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Failed to compile HostsLauncher.exe
+    echo [ERROR] Failed to compile OpenHostsFile.exe
     exit /b %ERRORLEVEL%
 )
+copy /y "%DIST_DIR%\OpenHostsFile.exe" "%DIST_DIR%\OpenHosts.exe" >nul
 
 echo [2/2] Compiling HostsManager.exe (GUI, Shortcut Creator, Subscriptions, Scheduler)...
 "%CSC%" /nologo /target:winexe /optimize+ /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%DIST_DIR%\HostsManager.exe" "%~dp0src\HostsManager.cs"
@@ -33,7 +34,7 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo [OK] All components successfully built into:
-echo      "%DIST_DIR%\HostsLauncher.exe"
+echo      "%DIST_DIR%\OpenHostsFile.exe"
 echo      "%DIST_DIR%\HostsManager.exe"
 
 endlocal

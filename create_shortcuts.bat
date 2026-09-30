@@ -2,10 +2,10 @@
 setlocal
 
 set "DIST_DIR=%~dp0dist-win-unpacked"
-set "EXE_PATH=%DIST_DIR%\HostsLauncher.exe"
+set "EXE_PATH=%DIST_DIR%\OpenHostsFile.exe"
 
 if not exist "%EXE_PATH%" (
-    echo [INFO] HostsLauncher.exe not found. Building first...
+    echo [INFO] OpenHostsFile.exe not found. Building first...
     call "%~dp0build.bat"
 )
 

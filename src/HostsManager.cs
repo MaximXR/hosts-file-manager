@@ -836,7 +836,9 @@ namespace HostsManager
             try
             {
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                string launcherPath = Path.Combine(baseDir, "HostsLauncher.exe");
+                string launcherPath = Path.Combine(baseDir, "OpenHostsFile.exe");
+                if (!File.Exists(launcherPath)) launcherPath = Path.Combine(baseDir, "OpenHosts.exe");
+                if (!File.Exists(launcherPath)) launcherPath = Path.Combine(baseDir, "HostsLauncher.exe");
                 if (!File.Exists(launcherPath))
                 {
                     launcherPath = Application.ExecutablePath;
