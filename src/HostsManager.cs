@@ -18,6 +18,7 @@ namespace HostsManager
     {
         public string Name { get; set; }
         public string Url { get; set; }
+        public string SiteUrl { get; set; } // Сайт / репозиторий проекта с описанием
         public bool Enabled { get; set; }
         public string LastHash { get; set; }
         public string LastUpdated { get; set; }
@@ -36,6 +37,10 @@ namespace HostsManager
         public string GeoHideLastHash { get; set; }
         public string GeoHideLastUpdated { get; set; }
 
+        // Настройки планировщика
+        public bool TaskOnlyIfIdle { get; set; }
+        public int TaskScheduleIndex { get; set; }
+
         // Дополнительные источники
         public List<CustomProviderConfig> CustomProviders { get; set; }
 
@@ -50,6 +55,9 @@ namespace HostsManager
             GeoHideRegion = "ru";
             GeoHideLastHash = "";
             GeoHideLastUpdated = "";
+
+            TaskOnlyIfIdle = true;
+            TaskScheduleIndex = 0;
 
             CustomProviders = Program.GetDefaultPresets();
         }
@@ -88,6 +96,7 @@ namespace HostsManager
                 {
                     Name = "GitHub520 (Ускорение доступа к GitHub)",
                     Url = "https://raw.hellogithub.com/hosts",
+                    SiteUrl = "https://github.com/521xueweihan/GitHub520",
                     Enabled = false,
                     LastHash = "",
                     LastUpdated = ""
@@ -96,6 +105,7 @@ namespace HostsManager
                 {
                     Name = "Windows SpyBlocker (Телеметрия)",
                     Url = "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt",
+                    SiteUrl = "https://github.com/crazy-max/WindowsSpyBlocker",
                     Enabled = false,
                     LastHash = "",
                     LastUpdated = ""
@@ -104,6 +114,7 @@ namespace HostsManager
                 {
                     Name = "AdAway (Блокировка рекламы)",
                     Url = "https://adaway.org/hosts.txt",
+                    SiteUrl = "https://adaway.org",
                     Enabled = false,
                     LastHash = "",
                     LastUpdated = ""
@@ -112,6 +123,7 @@ namespace HostsManager
                 {
                     Name = "StevenBlack (Анти-реклама и фишинг)",
                     Url = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+                    SiteUrl = "https://github.com/StevenBlack/hosts",
                     Enabled = false,
                     LastHash = "",
                     LastUpdated = ""
@@ -151,6 +163,22 @@ namespace HostsManager
                         {
                             cfg.CustomProviders = GetDefaultPresets();
                             SaveConfig(cfg);
+                        }
+                        else
+                        {
+                            // Обогащаем SiteUrl для существующих пресетов
+                            var defaults = GetDefaultPresets();
+                            bool changed = false;
+                            foreach (var p in cfg.CustomProviders)
+                            {
+                                if (string.IsNullOrEmpty(p.SiteUrl))
+                                {
+                                    var match = defaults.Find(d => d.Url == p.Url || d.Name == p.Name);
+                                    if (match != null) { p.SiteUrl = match.SiteUrl; changed = true; }
+                                    else { p.SiteUrl = p.Url; changed = true; }
+                                }
+                            }
+                            if (changed) SaveConfig(cfg);
                         }
                         return cfg;
                     }
@@ -197,10 +225,11 @@ namespace HostsManager
             catch { }
         }
 
-        public static bool CheckTaskStatus(out string nextRun, out string state)
+        public static bool CheckTaskStatus(out string nextRun, out string state, out bool isIdleOnly)
         {
             nextRun = "";
             state = "";
+            isIdleOnly = false;
             try
             {
                 ProcessStartInfo psi = new ProcessStartInfo
@@ -223,14 +252,44 @@ namespace HostsManager
                         {
                             nextRun = parts[1].Trim('\"');
                             state = parts[2].Trim('\"', '\r', '\n');
-                            return true;
                         }
+
+                        try
+                        {
+                            ProcessStartInfo psiXml = new ProcessStartInfo
+                            {
+                                FileName = "schtasks.exe",
+                                Arguments = "/query /tn \"HostsManagerAutoUpdate\" /xml",
+                                CreateNoWindow = true,
+                                UseShellExecute = false,
+                                RedirectStandardOutput = true
+                            };
+                            Process pXml = Process.Start(psiXml);
+                            if (pXml != null)
+                            {
+                                string xml = pXml.StandardOutput.ReadToEnd();
+                                pXml.WaitForExit(2000);
+                                if (xml.IndexOf("<RunOnlyIfIdle>true</RunOnlyIfIdle>", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                    xml.IndexOf("<IdleTrigger>", StringComparison.OrdinalIgnoreCase) >= 0)
+                                {
+                                    isIdleOnly = true;
+                                }
+                            }
+                        }
+                        catch { }
+
                         return true;
                     }
                 }
             }
             catch { }
             return false;
+        }
+
+        public static bool CheckTaskStatus(out string nextRun, out string state)
+        {
+            bool dummy;
+            return CheckTaskStatus(out nextRun, out state, out dummy);
         }
 
         [STAThread]
@@ -508,6 +567,7 @@ namespace HostsManager
 
         private Label lblTaskStatus;
         private ComboBox cboSchedule;
+        private CheckBox chkOnlyIfIdle;
         private TextBox txtSchedulerCmd;
         private Button btnCopyCmd;
         private Button btnToggleTask;
@@ -528,7 +588,7 @@ namespace HostsManager
         private void InitUI()
         {
             this.Text = "Hosts Manager & Shortcut Creator";
-            this.Size = new Size(690, 740);
+            this.Size = new Size(690, 765);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -762,23 +822,26 @@ namespace HostsManager
                 GridLines = true
             };
             lvCustomProviders.Columns.Add("Вкл", 45);
-            lvCustomProviders.Columns.Add("Название", 240);
-            lvCustomProviders.Columns.Add("URL источника", 205);
-            lvCustomProviders.Columns.Add("Обновлено", 115);
+            lvCustomProviders.Columns.Add("Название", 220);
+            lvCustomProviders.Columns.Add("Сайт проекта / Описание", 215);
+            lvCustomProviders.Columns.Add("Обновлено", 110);
 
-            btnAddCustom = new Button { Text = "➕ Свой URL...", Location = new Point(15, 153), Size = new Size(110, 28) };
+            btnAddCustom = new Button { Text = "➕ Свой URL...", Location = new Point(15, 153), Size = new Size(100, 28) };
             btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(130, 153), Size = new Size(85, 28) };
+            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(120, 153), Size = new Size(75, 28) };
             btnRemoveCustom.Click += BtnRemoveCustom_Click;
 
-            Button btnOpenUrl = new Button { Text = "🌐 Открыть ссылку", Location = new Point(220, 153), Size = new Size(140, 28) };
-            btnOpenUrl.Click += (s, e) => OpenSelectedProviderUrl();
+            Button btnOpenSite = new Button { Text = "🌐 Сайт проекта", Location = new Point(200, 153), Size = new Size(125, 28) };
+            btnOpenSite.Click += (s, e) => OpenSelectedProviderSite();
 
-            btnResetPresets = new Button { Text = "🔄 Восстановить каталог пресетов", Location = new Point(365, 153), Size = new Size(265, 28) };
+            Button btnOpenFile = new Button { Text = "📄 Hosts-файл", Location = new Point(330, 153), Size = new Size(110, 28) };
+            btnOpenFile.Click += (s, e) => OpenSelectedProviderFile();
+
+            btnResetPresets = new Button { Text = "🔄 Восстановить пресеты", Location = new Point(445, 153), Size = new Size(185, 28) };
             btnResetPresets.Click += (s, e) =>
             {
-                if (MessageBox.Show("Сбросить список к популярным встроенным пресетам?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                if (MessageBox.Show("Сбросить список к популярным встроенным пресетам с официальными сайтами?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
                     config.CustomProviders = Program.GetDefaultPresets();
                     Program.SaveConfig(config);
@@ -786,25 +849,33 @@ namespace HostsManager
                 }
             };
 
-            // Двойной клик и контекстное меню
-            lvCustomProviders.DoubleClick += (s, e) => OpenSelectedProviderUrl();
+            // Двойной клик открывает сайт проекта с описанием
+            lvCustomProviders.DoubleClick += (s, e) => OpenSelectedProviderSite();
 
             ContextMenuStrip cms = new ContextMenuStrip();
-            ToolStripMenuItem miOpen = new ToolStripMenuItem("🌐 Открыть ссылку в браузере");
-            miOpen.Click += (s, e) => OpenSelectedProviderUrl();
-            ToolStripMenuItem miCopy = new ToolStripMenuItem("📋 Скопировать URL в буфер");
-            miCopy.Click += (s, e) => CopySelectedProviderUrl();
+            ToolStripMenuItem miOpenSite = new ToolStripMenuItem("🌐 Открыть сайт / репозиторий проекта (с описанием)");
+            miOpenSite.Click += (s, e) => OpenSelectedProviderSite();
+            ToolStripMenuItem miOpenFile = new ToolStripMenuItem("📄 Открыть файл hosts в браузере (raw)");
+            miOpenFile.Click += (s, e) => OpenSelectedProviderFile();
+            ToolStripMenuItem miCopySite = new ToolStripMenuItem("📋 Скопировать ссылку на сайт проекта");
+            miCopySite.Click += (s, e) => CopySelectedProviderSite();
+            ToolStripMenuItem miCopyUrl = new ToolStripMenuItem("📋 Скопировать прямую ссылку на hosts");
+            miCopyUrl.Click += (s, e) => CopySelectedProviderUrl();
             ToolStripMenuItem miDel = new ToolStripMenuItem("🗑️ Удалить источник");
             miDel.Click += BtnRemoveCustom_Click;
-            cms.Items.Add(miOpen);
-            cms.Items.Add(miCopy);
+
+            cms.Items.Add(miOpenSite);
+            cms.Items.Add(miOpenFile);
+            cms.Items.Add(new ToolStripSeparator());
+            cms.Items.Add(miCopySite);
+            cms.Items.Add(miCopyUrl);
             cms.Items.Add(new ToolStripSeparator());
             cms.Items.Add(miDel);
             lvCustomProviders.ContextMenuStrip = cms;
 
             Label lblCustomHint = new Label
             {
-                Text = "💡 Подсказка: Двойной клик или правая кнопка мыши по строке открывает сайт подписки в браузере.",
+                Text = "💡 Двойной клик или кнопка «Сайт проекта» открывает официальную страницу с описанием сервиса.",
                 Location = new Point(15, 190),
                 Size = new Size(615, 22),
                 ForeColor = Color.DarkSlateBlue
@@ -813,7 +884,8 @@ namespace HostsManager
             gbCustom.Controls.Add(lvCustomProviders);
             gbCustom.Controls.Add(btnAddCustom);
             gbCustom.Controls.Add(btnRemoveCustom);
-            gbCustom.Controls.Add(btnOpenUrl);
+            gbCustom.Controls.Add(btnOpenSite);
+            gbCustom.Controls.Add(btnOpenFile);
             gbCustom.Controls.Add(btnResetPresets);
             gbCustom.Controls.Add(lblCustomHint);
 
@@ -822,13 +894,13 @@ namespace HostsManager
             {
                 Text = "3. Фоновое автообновление (Планировщик задач Windows)",
                 Location = new Point(15, 436),
-                Size = new Size(645, 160)
+                Size = new Size(645, 185)
             };
 
             lblTaskStatus = new Label
             {
                 Text = "Статус: Проверка задачи...",
-                Location = new Point(15, 22),
+                Location = new Point(15, 20),
                 Size = new Size(615, 20),
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
@@ -836,14 +908,14 @@ namespace HostsManager
             Label lblFreq = new Label
             {
                 Text = "Расписание:",
-                Location = new Point(15, 49),
+                Location = new Point(15, 46),
                 AutoSize = true
             };
 
             cboSchedule = new ComboBox
             {
-                Location = new Point(100, 46),
-                Size = new Size(225, 23),
+                Location = new Point(100, 43),
+                Size = new Size(230, 23),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             cboSchedule.Items.Add("Раз в день в 09:00 (утро)");
@@ -851,14 +923,15 @@ namespace HostsManager
             cboSchedule.Items.Add("Каждые 6 часов");
             cboSchedule.Items.Add("Каждые 12 часов");
             cboSchedule.Items.Add("При каждом входе в систему");
+            cboSchedule.Items.Add("Только при простое ПК (ONIDLE — 10 мин)");
             cboSchedule.SelectedIndex = 0;
 
             string cmdString = "\"" + Application.ExecutablePath + "\" /update-silent";
             txtSchedulerCmd = new TextBox
             {
                 Text = cmdString,
-                Location = new Point(335, 46),
-                Size = new Size(185, 23),
+                Location = new Point(338, 43),
+                Size = new Size(182, 23),
                 ReadOnly = true,
                 BackColor = Color.WhiteSmoke
             };
@@ -866,7 +939,7 @@ namespace HostsManager
             btnCopyCmd = new Button
             {
                 Text = "📋 Команда",
-                Location = new Point(525, 45),
+                Location = new Point(525, 42),
                 Size = new Size(105, 25)
             };
             btnCopyCmd.Click += (s, e) =>
@@ -875,9 +948,18 @@ namespace HostsManager
                 MessageBox.Show("Команда скопирована в буфер обмена!\n" + txtSchedulerCmd.Text, "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
             };
 
+            chkOnlyIfIdle = new CheckBox
+            {
+                Text = "💤 Обновлять только при простое компьютера (не мешать активной работе и играм)",
+                Location = new Point(15, 74),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                Checked = true
+            };
+
             btnToggleTask = new Button
             {
-                Location = new Point(15, 78),
+                Location = new Point(15, 102),
                 Size = new Size(310, 36),
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
@@ -886,7 +968,7 @@ namespace HostsManager
             btnOpenTaskScheduler = new Button
             {
                 Text = "📅 Открыть в Планировщике Windows",
-                Location = new Point(335, 78),
+                Location = new Point(335, 102),
                 Size = new Size(295, 36),
                 Font = new Font("Segoe UI", 9F)
             };
@@ -895,7 +977,7 @@ namespace HostsManager
             Label lblPathHint = new Label
             {
                 Text = "📍 В Планировщике Windows задача лежит в папке: «Библиотека планировщика заданий» → «HostsManagerAutoUpdate»",
-                Location = new Point(15, 124),
+                Location = new Point(15, 146),
                 Size = new Size(615, 28),
                 ForeColor = Color.DimGray
             };
@@ -905,6 +987,7 @@ namespace HostsManager
             gbScheduler.Controls.Add(cboSchedule);
             gbScheduler.Controls.Add(txtSchedulerCmd);
             gbScheduler.Controls.Add(btnCopyCmd);
+            gbScheduler.Controls.Add(chkOnlyIfIdle);
             gbScheduler.Controls.Add(btnToggleTask);
             gbScheduler.Controls.Add(btnOpenTaskScheduler);
             gbScheduler.Controls.Add(lblPathHint);
@@ -913,7 +996,7 @@ namespace HostsManager
             btnUpdateNow = new Button
             {
                 Text = "🔄 Синхронизировать hosts сейчас",
-                Location = new Point(15, 604),
+                Location = new Point(15, 628),
                 Size = new Size(645, 42),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240)
@@ -923,7 +1006,7 @@ namespace HostsManager
             lblProviderStatus = new Label
             {
                 Text = "Личные ручные записи в hosts изолированы и надежно защищены от перезаписи.",
-                Location = new Point(15, 650),
+                Location = new Point(15, 674),
                 Size = new Size(645, 25),
                 ForeColor = Color.Gray
             };
@@ -961,6 +1044,12 @@ namespace HostsManager
 
             lblGeoHideInfo.Text = "Статус: Обновлено: " + (string.IsNullOrEmpty(config.GeoHideLastUpdated) ? "Никогда" : config.GeoHideLastUpdated);
 
+            if (chkOnlyIfIdle != null) chkOnlyIfIdle.Checked = config.TaskOnlyIfIdle;
+            if (cboSchedule != null && config.TaskScheduleIndex >= 0 && config.TaskScheduleIndex < cboSchedule.Items.Count)
+            {
+                cboSchedule.SelectedIndex = config.TaskScheduleIndex;
+            }
+
             RefreshCustomProvidersList();
             RefreshTaskStatus();
         }
@@ -968,11 +1057,13 @@ namespace HostsManager
         private void RefreshTaskStatus()
         {
             string nextRun, state;
-            bool exists = Program.CheckTaskStatus(out nextRun, out state);
+            bool isIdleOnly;
+            bool exists = Program.CheckTaskStatus(out nextRun, out state, out isIdleOnly);
 
             if (exists)
             {
-                lblTaskStatus.Text = string.Format("🟢 Задача активна в Windows. Следующий запуск: {0} ({1})", nextRun, state);
+                string idleSuffix = isIdleOnly ? " [режим простоя ПК]" : "";
+                lblTaskStatus.Text = string.Format("🟢 Задача активна в Windows{0}. Следующий запуск: {1} ({2})", idleSuffix, nextRun, state);
                 lblTaskStatus.ForeColor = Color.DarkGreen;
                 btnToggleTask.Text = "🗑️ Удалить задачу из Планировщика";
                 btnToggleTask.BackColor = Color.FromArgb(255, 235, 235);
@@ -996,7 +1087,8 @@ namespace HostsManager
                 ListViewItem item = new ListViewItem("");
                 item.Checked = p.Enabled;
                 item.SubItems.Add(p.Name);
-                item.SubItems.Add(p.Url);
+                string displaySite = !string.IsNullOrEmpty(p.SiteUrl) ? p.SiteUrl : p.Url;
+                item.SubItems.Add(displaySite);
                 item.SubItems.Add(string.IsNullOrEmpty(p.LastUpdated) ? "Никогда" : p.LastUpdated);
                 item.Tag = p;
                 lvCustomProviders.Items.Add(item);
@@ -1092,20 +1184,46 @@ namespace HostsManager
             CreateDesktopShortcut(exePath, "", iconLoc, "Hosts Manager", "Панель управления hosts, подписками и планировщиком");
         }
 
-        private void OpenSelectedProviderUrl()
+        private void OpenSelectedProviderSite()
+        {
+            if (lvCustomProviders.SelectedItems.Count == 0) return;
+            var item = lvCustomProviders.SelectedItems[0];
+            var provider = item.Tag as CustomProviderConfig;
+            if (provider != null)
+            {
+                string target = !string.IsNullOrEmpty(provider.SiteUrl) ? provider.SiteUrl : provider.Url;
+                if (!string.IsNullOrEmpty(target))
+                {
+                    try { Process.Start(target); }
+                    catch (Exception ex) { MessageBox.Show("Не удалось открыть страницу: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                }
+            }
+        }
+
+        private void OpenSelectedProviderFile()
         {
             if (lvCustomProviders.SelectedItems.Count == 0) return;
             var item = lvCustomProviders.SelectedItems[0];
             var provider = item.Tag as CustomProviderConfig;
             if (provider != null && !string.IsNullOrEmpty(provider.Url))
             {
-                try
+                try { Process.Start(provider.Url); }
+                catch (Exception ex) { MessageBox.Show("Не удалось открыть файл hosts: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            }
+        }
+
+        private void CopySelectedProviderSite()
+        {
+            if (lvCustomProviders.SelectedItems.Count == 0) return;
+            var item = lvCustomProviders.SelectedItems[0];
+            var provider = item.Tag as CustomProviderConfig;
+            if (provider != null)
+            {
+                string target = !string.IsNullOrEmpty(provider.SiteUrl) ? provider.SiteUrl : provider.Url;
+                if (!string.IsNullOrEmpty(target))
                 {
-                    Process.Start(provider.Url);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Не удалось открыть ссылку: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Clipboard.SetText(target);
+                    MessageBox.Show("Ссылка на сайт проекта скопирована в буфер:\n" + target, "Скопировано", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
         }
@@ -1118,14 +1236,16 @@ namespace HostsManager
             if (provider != null && !string.IsNullOrEmpty(provider.Url))
             {
                 Clipboard.SetText(provider.Url);
-                MessageBox.Show("URL источника скопирован в буфер обмена:\n" + provider.Url, "Скопировано", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Прямая ссылка на файл hosts скопирована в буфер:\n" + provider.Url, "Скопировано", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
         private void BtnAddCustom_Click(object sender, EventArgs e)
         {
-            string url = PromptDialog("Введите URL списка правил hosts:", "Добавление источника");
+            string url = PromptDialog("Введите прямую ссылку на файл правил hosts (raw .txt):", "URL файла hosts");
             if (string.IsNullOrEmpty(url)) return;
+
+            string siteUrl = PromptDialog("Введите сайт / репозиторий проекта с описанием (необязательно):", "Сайт проекта");
 
             string name = PromptDialog("Введите краткое имя источника:", "Имя источника");
             if (string.IsNullOrEmpty(name)) name = "Источник " + (config.CustomProviders.Count + 1);
@@ -1134,6 +1254,7 @@ namespace HostsManager
             {
                 Name = name,
                 Url = url,
+                SiteUrl = string.IsNullOrEmpty(siteUrl) ? url : siteUrl,
                 Enabled = true,
                 LastHash = "",
                 LastUpdated = ""
@@ -1222,6 +1343,7 @@ namespace HostsManager
                     string exePath = Application.ExecutablePath;
                     string scheduleArgs = "/sc daily /st 09:00";
                     string humanSchedule = "каждый день в 09:00";
+                    bool isScheduleOnIdle = false;
 
                     if (cboSchedule != null)
                     {
@@ -1243,6 +1365,11 @@ namespace HostsManager
                                 scheduleArgs = "/sc onlogon";
                                 humanSchedule = "при каждом входе в Windows";
                                 break;
+                            case 5:
+                                scheduleArgs = "/sc onidle /i 10";
+                                humanSchedule = "при простое компьютера (от 10 минут)";
+                                isScheduleOnIdle = true;
+                                break;
                             default:
                                 scheduleArgs = "/sc daily /st 09:00";
                                 humanSchedule = "каждый день в 09:00";
@@ -1253,8 +1380,62 @@ namespace HostsManager
                     psi.Arguments = string.Format("/create /tn \"{0}\" /tr \"\\\"{1}\\\" /update-silent\" {2} /rl highest /f", taskName, exePath, scheduleArgs);
                     Process p = Process.Start(psi);
                     if (p != null) p.WaitForExit();
+
+                    // Если включен флаг «Обновлять только при простое» и расписание не чистое ONIDLE
+                    if (chkOnlyIfIdle != null && chkOnlyIfIdle.Checked && !isScheduleOnIdle)
+                    {
+                        try
+                        {
+                            ProcessStartInfo qPsi = new ProcessStartInfo
+                            {
+                                FileName = "schtasks.exe",
+                                Arguments = string.Format("/query /tn \"{0}\" /xml", taskName),
+                                CreateNoWindow = true,
+                                UseShellExecute = false,
+                                RedirectStandardOutput = true
+                            };
+                            Process qProc = Process.Start(qPsi);
+                            string xml = qProc != null ? qProc.StandardOutput.ReadToEnd() : "";
+                            if (qProc != null) qProc.WaitForExit();
+
+                            if (!string.IsNullOrEmpty(xml))
+                            {
+                                if (!xml.Contains("<RunOnlyIfIdle>"))
+                                {
+                                    xml = xml.Replace("<Settings>", "<Settings>\r\n    <RunOnlyIfIdle>true</RunOnlyIfIdle>");
+                                }
+                                else
+                                {
+                                    xml = xml.Replace("<RunOnlyIfIdle>false</RunOnlyIfIdle>", "<RunOnlyIfIdle>true</RunOnlyIfIdle>");
+                                }
+
+                                string tmpXmlPath = Path.Combine(Path.GetTempPath(), "HostsAutoUpdateTask.xml");
+                                File.WriteAllText(tmpXmlPath, xml, Encoding.Unicode);
+
+                                ProcessStartInfo xmlPsi = new ProcessStartInfo
+                                {
+                                    FileName = "schtasks.exe",
+                                    Arguments = string.Format("/create /tn \"{0}\" /xml \"{1}\" /f", taskName, tmpXmlPath),
+                                    Verb = "runas",
+                                    UseShellExecute = true
+                                };
+                                Process xmlProc = Process.Start(xmlPsi);
+                                if (xmlProc != null) xmlProc.WaitForExit();
+
+                                try { File.Delete(tmpXmlPath); } catch { }
+                            }
+                        }
+                        catch { }
+                    }
+
+                    if (chkOnlyIfIdle != null) config.TaskOnlyIfIdle = chkOnlyIfIdle.Checked;
+                    if (cboSchedule != null) config.TaskScheduleIndex = cboSchedule.SelectedIndex;
+                    Program.SaveConfig(config);
+
                     RefreshTaskStatus();
-                    MessageBox.Show(string.Format("Задача успешно создана в Планировщике Windows!\n\nРасписание: {0}.\nЗапуск производится тихо в фоновом режиме с наивысшими правами.", humanSchedule), "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    string idleNotice = (chkOnlyIfIdle != null && chkOnlyIfIdle.Checked) ? "\nУсловие: запуск ТОЛЬКО при простое компьютера (не мешает активной работе)." : "";
+                    MessageBox.Show(string.Format("Задача успешно создана в Планировщике Windows!\n\nРасписание: {0}.{1}\nЗапуск производится тихо в фоновом режиме с наивысшими правами.", humanSchedule, idleNotice), "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
