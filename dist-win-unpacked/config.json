@@ -50,5 +50,7 @@
   ],
   "TaskScheduleIndex": 1,
   "TaskOnlyIfIdle": true,
-  "Language": "ru"
+  "Language": "ru",
+  "WindowWidth": 690,
+  "WindowHeight": 780
 }

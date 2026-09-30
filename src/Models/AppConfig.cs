@@ -56,7 +56,7 @@ namespace HostsLauncher.Models
             TaskOnlyIfIdle = true;
             Language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLower() == "ru" ? "ru" : "en";
             WindowWidth = 690;
-            WindowHeight = 690;
+            WindowHeight = 780;
         }
     }
 
@@ -128,7 +128,7 @@ namespace HostsLauncher.Models
                             cfg.Language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLower() == "ru" ? "ru" : "en";
                         }
                         if (cfg.WindowWidth < 600) cfg.WindowWidth = 690;
-                        if (cfg.WindowHeight < 560) cfg.WindowHeight = 690;
+                        if (cfg.WindowHeight < 560) cfg.WindowHeight = 780;
                         return cfg;
                     }
                 }

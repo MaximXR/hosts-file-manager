@@ -197,7 +197,7 @@ namespace HostsLauncher.UI
         private void InitUI()
         {
             int w = (config.WindowWidth >= 600) ? config.WindowWidth : 690;
-            int h = (config.WindowHeight >= 560) ? config.WindowHeight : 690;
+            int h = (config.WindowHeight >= 560) ? config.WindowHeight : 780;
             try
             {
                 Rectangle workArea = Screen.PrimaryScreen.WorkingArea;

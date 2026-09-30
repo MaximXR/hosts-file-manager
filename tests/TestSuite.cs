@@ -378,7 +378,7 @@ namespace HostsLauncher.Tests
             AppConfig cfg = new AppConfig();
             using (MainForm form = new MainForm(cfg))
             {
-                form.Size = new System.Drawing.Size(690, 700);
+                form.Size = new System.Drawing.Size(690, 780);
                 form.LayoutProvidersTab();
 
                 int geoH1 = form.gbGeo.Height;
@@ -386,8 +386,8 @@ namespace HostsLauncher.Tests
                 int btnH1 = form.btnUpdateNow.Height;
                 int customH1 = form.gbCustom.Height;
 
-                // Expand window height by 150px
-                form.Size = new System.Drawing.Size(690, 850);
+                // Expand window height by 120px
+                form.Size = new System.Drawing.Size(690, 900);
                 form.LayoutProvidersTab();
                 AssertEqual(geoH1, form.gbGeo.Height, "gbGeo height must remain fixed when form expands");
                 AssertEqual(schedH1, form.gbScheduler.Height, "gbScheduler height must remain fixed when form expands");
