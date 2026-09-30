@@ -105,10 +105,11 @@ HostsLauncher/
 ├── docs/
 │   └── screenshots/               # Скриншоты интерфейса для документации
 ├── tests/
-│   └── TestSuite.cs               # Автоматический тестовый комплекс (10 тестов)
+│   └── TestSuite.cs               # Автоматический тестовый комплекс (12 тестов)
 ├── dist-win-unpacked/             # Готовые бинарники для работы
 │   ├── OpenHostsFile.exe          # Легковесный раннер (запуск редактора с UAC)
 │   ├── HostsManager.exe           # Графическая панель управления
+│   ├── presets.json               # Каталог стандартных подписок
 │   └── config.json                # Портативная конфигурация (без реестра Windows)
 ├── dist/                          # Скомпилированные релизные zip-архивы
 ├── test.bat                       # Скрипт сборки и запуска автотестов
@@ -234,10 +235,11 @@ HostsLauncher/
 ├── docs/
 │   └── screenshots/               # Interface screenshots for documentation
 ├── tests/
-│   └── TestSuite.cs               # Automated test suite (10 tests)
+│   └── TestSuite.cs               # Automated test suite (12 tests)
 ├── dist-win-unpacked/             # Compiled binaries ready to run
 │   ├── OpenHostsFile.exe          # Lightweight runner (launches editor with UAC)
-│   ├── HostsManager.exe       # Graphical control panel
+│   ├── HostsManager.exe           # Graphical control panel
+│   ├── presets.json               # Official subscriptions catalog
 │   └── config.json                # Portable configuration (without registry)
 ├── dist/                          # Packaged release zip archives
 ├── test.bat                       # Test compilation and execution script
