@@ -9,27 +9,29 @@
 
 ### Русский
 #### Добавлено
+- **Нативные системные уведомления Windows**: вместо модальных всплывающих окон при синхронизации hosts отправляется ненавязчивое push-уведомление в Центр уведомлений Windows (через системный `NotifyIcon.ShowBalloonTip`), не блокирующее интерфейс.
 - **Кнопка прямого открытия hosts в шапке окна**: в шапку менеджера добавлена кнопка `[📄 Открыть hosts...]`, доступная на всех вкладках и запускающая системное окно Windows «Открыть с помощью...» для быстрого выбора любого редактора.
 - **Логическое разделение на 3 отдельных блока ярлыков**: параметры разбиты на 3 четкие группы («1. Ярлык открытия hosts в редакторе», «2. Ярлык быстрого обновления hosts (в 1 клик)» и «3. Ярлык панели управления Hosts Manager»).
 - **Единая иконка приложения и значок обновления**: нативные значки Win32 вшиты в сборку, наследуются ярлыками, отображаются на панели задач и в заголовках окон.
 - **Модульная архитектура и набор автотестов**: исходный код структурирован по пространствам имен (`Models`, `Localization`, `Services`, `UI`). Внедрен автоматический тестовый комплект `test.bat` (10 тестов), валидирующий паритет локализации, работу с блоками hosts, параметры XML планировщика и заполненность UI-контролов.
 
 #### Изменено
+- **Идеальная посадка кнопки синхронизации**: скорректирована вертикальная геометрия блоков (компактный выбор регионов GeoHide, оптимизированные отступы каталога и планировщика). Кнопка «Синхронизировать hosts сейчас» и статусная строка полностью помещаются в окне с комфортным запасом.
 - **Единые размеры кнопок и строгое выравнивание**: все три кнопки создания ярлыков приведены к абсолютно одинаковым размерам (605 × 34 px), поля ввода и выпадающие списки центрированы по единой направляющей (X = 225, W = 400).
-- **Компактный редизайн списка подписок**: оптимизирована компоновка списка источников (высота строки 32px, зебра-фон, бейджи `[🌐 Сайт]` и `[📄 hosts]`, всплывающие подсказки). Все 5 встроенных пресетов помещаются на экране без вертикальной полосы прокрутки.
-- **Оптимизация геометрии окна**: высота окна уменьшена с 805px до 725px без потери читаемости, сокращены лишние отступы в блоке GeoHide.
+- **Компактный редизайн списка подписок**: оптимизирована компоновка списка источников (высота строки 32px, зебра-фон, бейджи `[🌐 Сайт]` и `[📄 hosts]`, всплывающие подсказки). Все встроенные пресеты помещаются на экране без вертикальной полосы прокрутки.
 
 ### English
 #### Added
+- **Native Windows Toast Notifications**: hosts synchronization dispatches non-blocking native notifications directly to the Windows Notification / Action Center instead of modal popups.
 - **Global Header "Open hosts..." Button**: embedded `[📄 Open hosts...]` button in the window header, available from all tabs to launch Windows "Open with..." dialog directly.
 - **3 Logical Shortcut Blocks**: reorganized Tab 1 into 3 distinct sections ("1. Shortcut to open hosts in editor", "2. Fast hosts update shortcut (1-click)", and "3. Hosts Manager panel shortcut").
 - **Unified Native Application & Sync Icons**: multi-resolution Win32 icons embedded in binary builds and applied to shortcuts and taskbar.
 - **Modular Architecture & Automated Test Suite**: code divided into clean namespaces with 10 automated unit/UI tests executed before compilation.
 
 #### Changed
+- **Pixel-Perfect Sync Button Framing**: optimized vertical block geometry, region radio button flow, and margins so the "Sync hosts now" button and status label fit with clean spacing and zero cutoff.
 - **Equal Shortcut Button Sizes & Pixel-Perfect Alignment**: all three shortcut creation buttons have identical dimensions (605 × 34 px) with aligned input fields (X = 225, W = 400).
-- **Compact Subscriptions UI Redesign**: streamlined custom providers list with sleek 32px rows, zebra styling, compact badges `[🌐 Сайт]` / `[📄 hosts]`, and tooltips. All 5 default presets fit without a vertical scrollbar.
-- **Window Geometry Optimization**: reduced total form height from 805px to 725px, removing excess whitespace while retaining clean information hierarchy.
+- **Compact Subscriptions UI Redesign**: streamlined custom providers list with sleek 32px rows, zebra styling, compact badges `[🌐 Сайт]` / `[📄 hosts]`, and tooltips.
 
 ---
 

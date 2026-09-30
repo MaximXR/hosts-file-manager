@@ -109,6 +109,7 @@ namespace HostsLauncher.UI
         internal Label lblProviderStatus;
 
         internal ToolTip toolTip;
+        internal NotifyIcon notifyIcon;
         internal AppConfig config;
 
         public MainForm(AppConfig initialConfig = null)
@@ -150,6 +151,27 @@ namespace HostsLauncher.UI
             }
             catch { }
 
+            try
+            {
+                notifyIcon = new NotifyIcon
+                {
+                    Icon = this.Icon,
+                    Visible = true,
+                    Text = "Hosts Launcher & Manager"
+                };
+            }
+            catch { }
+
+            this.FormClosing += (s, e) =>
+            {
+                if (notifyIcon != null)
+                {
+                    notifyIcon.Visible = false;
+                    notifyIcon.Dispose();
+                    notifyIcon = null;
+                }
+            };
+
             InitUI();
             ApplyLocalization();
             LoadConfigToUI();
@@ -157,7 +179,7 @@ namespace HostsLauncher.UI
 
         private void InitUI()
         {
-            this.Size = new Size(690, 725);
+            this.Size = new Size(690, 745);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -405,8 +427,8 @@ namespace HostsLauncher.UI
             // Блок 1: GeoHide (Компактный)
             gbGeo = new GroupBox
             {
-                Location = new Point(15, 8),
-                Size = new Size(645, 158)
+                Location = new Point(15, 6),
+                Size = new Size(645, 134)
             };
 
             chkGeoHide = new CheckBox
@@ -430,18 +452,18 @@ namespace HostsLauncher.UI
 
             lblRegionTitle = new Label
             {
-                Location = new Point(15, 46),
+                Location = new Point(15, 45),
                 AutoSize = true,
                 ForeColor = Color.FromArgb(70, 80, 95)
             };
 
-            rbGeoRU = new RadioButton { Location = new Point(30, 68), AutoSize = true, Checked = true };
-            rbGeoEU = new RadioButton { Location = new Point(30, 90), AutoSize = true };
-            rbGeoUS = new RadioButton { Location = new Point(30, 112), AutoSize = true };
+            rbGeoRU = new RadioButton { Location = new Point(30, 66), AutoSize = true, Checked = true };
+            rbGeoEU = new RadioButton { Location = new Point(30, 88), AutoSize = true };
+            rbGeoUS = new RadioButton { Location = new Point(220, 88), AutoSize = true };
 
             lblGeoHideInfo = new Label
             {
-                Location = new Point(30, 134),
+                Location = new Point(30, 110),
                 AutoSize = true,
                 ForeColor = Color.DarkSlateGray
             };
@@ -464,23 +486,23 @@ namespace HostsLauncher.UI
             // Блок 2: Дополнительные источники (Просторный и компактный список)
             gbCustom = new GroupBox
             {
-                Location = new Point(15, 172),
-                Size = new Size(645, 255)
+                Location = new Point(15, 146),
+                Size = new Size(645, 228)
             };
 
             pnlCustomProviders = new Panel
             {
                 Location = new Point(12, 22),
-                Size = new Size(621, 188),
+                Size = new Size(621, 168),
                 AutoScroll = true,
                 BorderStyle = BorderStyle.FixedSingle,
                 BackColor = Color.White
             };
 
-            btnAddCustom = new Button { Location = new Point(12, 218), Size = new Size(175, 27) };
+            btnAddCustom = new Button { Location = new Point(12, 195), Size = new Size(175, 26) };
             btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnResetPresets = new Button { Location = new Point(195, 218), Size = new Size(165, 27) };
+            btnResetPresets = new Button { Location = new Point(195, 195), Size = new Size(165, 26) };
             btnResetPresets.Click += (s, e) =>
             {
                 if (MessageBox.Show(L10n.T("ConfirmResetPresets"), L10n.T("Confirmation"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -493,7 +515,7 @@ namespace HostsLauncher.UI
 
             lblCustomHint = new Label
             {
-                Location = new Point(370, 216),
+                Location = new Point(370, 193),
                 Size = new Size(260, 30),
                 ForeColor = Color.DarkSlateBlue
             };
@@ -506,26 +528,26 @@ namespace HostsLauncher.UI
             // Блок 3: Планировщик Windows
             gbScheduler = new GroupBox
             {
-                Location = new Point(15, 434),
-                Size = new Size(645, 165)
+                Location = new Point(15, 380),
+                Size = new Size(645, 150)
             };
 
             lblTaskStatus = new Label
             {
-                Location = new Point(15, 20),
+                Location = new Point(15, 19),
                 Size = new Size(615, 20),
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
 
             lblFreq = new Label
             {
-                Location = new Point(15, 46),
+                Location = new Point(15, 44),
                 AutoSize = true
             };
 
             cboSchedule = new ComboBox
             {
-                Location = new Point(95, 43),
+                Location = new Point(95, 41),
                 Size = new Size(225, 23),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
@@ -541,7 +563,7 @@ namespace HostsLauncher.UI
             txtSchedulerCmd = new TextBox
             {
                 Text = cmdString,
-                Location = new Point(328, 43),
+                Location = new Point(328, 41),
                 Size = new Size(190, 23),
                 ReadOnly = true,
                 BackColor = Color.WhiteSmoke
@@ -549,7 +571,7 @@ namespace HostsLauncher.UI
 
             btnCopyCmd = new Button
             {
-                Location = new Point(525, 42),
+                Location = new Point(525, 40),
                 Size = new Size(105, 25)
             };
             btnCopyCmd.Click += (s, e) =>
@@ -560,7 +582,7 @@ namespace HostsLauncher.UI
 
             chkOnlyIfIdle = new CheckBox
             {
-                Location = new Point(15, 72),
+                Location = new Point(15, 68),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
                 Checked = true
@@ -568,24 +590,24 @@ namespace HostsLauncher.UI
 
             btnToggleTask = new Button
             {
-                Location = new Point(15, 96),
-                Size = new Size(305, 34),
+                Location = new Point(15, 90),
+                Size = new Size(305, 32),
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
             btnToggleTask.Click += BtnToggleTask_Click;
 
             btnOpenTaskScheduler = new Button
             {
-                Location = new Point(328, 96),
-                Size = new Size(302, 34),
+                Location = new Point(328, 90),
+                Size = new Size(302, 32),
                 Font = new Font("Segoe UI", 9F)
             };
             btnOpenTaskScheduler.Click += (s, e) => SchedulerService.OpenTaskScheduler();
 
             lblPathHint = new Label
             {
-                Location = new Point(15, 134),
-                Size = new Size(615, 24),
+                Location = new Point(15, 126),
+                Size = new Size(615, 20),
                 ForeColor = Color.DimGray
             };
 
@@ -602,16 +624,17 @@ namespace HostsLauncher.UI
             // Кнопка синхронизации
             btnUpdateNow = new Button
             {
-                Location = new Point(15, 606),
-                Size = new Size(645, 40),
+                Location = new Point(15, 536),
+                Size = new Size(645, 38),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                BackColor = Color.FromArgb(235, 255, 240)
+                BackColor = Color.FromArgb(235, 255, 240),
+                Cursor = Cursors.Hand
             };
             btnUpdateNow.Click += BtnUpdateNow_Click;
 
             lblProviderStatus = new Label
             {
-                Location = new Point(15, 650),
+                Location = new Point(15, 578),
                 Size = new Size(645, 20),
                 ForeColor = Color.Gray
             };
@@ -1150,15 +1173,48 @@ namespace HostsLauncher.UI
                     {
                         lblProviderStatus.Text = L10n.T("SyncSuccess", DateTime.Now.ToString("HH:mm:ss"));
                         lblProviderStatus.ForeColor = Color.DarkGreen;
-                        MessageBox.Show(L10n.T("SyncSuccessBox"), L10n.T("Success"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        ShowSystemNotification(
+                            L10n.T("SyncSuccessToastTitle"),
+                            L10n.T("SyncSuccessToastBody"),
+                            ToolTipIcon.Info);
                     }
                     else
                     {
                         lblProviderStatus.Text = L10n.T("SyncError");
                         lblProviderStatus.ForeColor = Color.Red;
+                        ShowSystemNotification(
+                            L10n.T("SyncErrorToastTitle"),
+                            L10n.T("SyncErrorToastBody"),
+                            ToolTipIcon.Warning);
                     }
                 }));
             });
+        }
+
+        private void ShowSystemNotification(string title, string message, ToolTipIcon iconType)
+        {
+            try
+            {
+                if (notifyIcon == null)
+                {
+                    notifyIcon = new NotifyIcon
+                    {
+                        Icon = this.Icon,
+                        Visible = true,
+                        Text = "Hosts Manager"
+                    };
+                }
+                else
+                {
+                    notifyIcon.Visible = true;
+                }
+
+                notifyIcon.BalloonTipTitle = title;
+                notifyIcon.BalloonTipText = message;
+                notifyIcon.BalloonTipIcon = iconType;
+                notifyIcon.ShowBalloonTip(4000);
+            }
+            catch { }
         }
 
         private void BtnToggleTask_Click(object sender, EventArgs e)
