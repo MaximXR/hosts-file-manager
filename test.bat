@@ -30,6 +30,8 @@ echo.
 set TEST_STATUS=%ERRORLEVEL%
 
 if exist "%TEST_OUT%" del "%TEST_OUT%"
+if exist "%~dp0tests\presets.json" del "%~dp0tests\presets.json"
+if exist "%~dp0tests\config.json" del "%~dp0tests\config.json"
 
 if %TEST_STATUS% neq 0 (
     echo.

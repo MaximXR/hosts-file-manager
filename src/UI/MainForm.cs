@@ -608,15 +608,7 @@ namespace HostsLauncher.UI
             btnAddCustom.Click += BtnAddCustom_Click;
 
             btnResetPresets = new Button { Location = new Point(195, 298), Size = new Size(165, 26) };
-            btnResetPresets.Click += (s, e) =>
-            {
-                if (MessageBox.Show(L10n.T("ConfirmResetPresets"), L10n.T("Confirmation"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                {
-                    config.CustomProviders = ConfigManager.GetDefaultPresets();
-                    ConfigManager.SaveConfig(config);
-                    RefreshCustomProvidersList();
-                }
-            };
+            btnResetPresets.Click += (s, e) => ShowPresetResetDialog();
 
             lblCustomHint = new Label
             {
@@ -1122,6 +1114,11 @@ namespace HostsLauncher.UI
                 {
                     if (MessageBox.Show(L10n.T("ConfirmDeleteSource", p.Name), L10n.T("Confirmation"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                     {
+                        if (p.IsPreset && !string.IsNullOrEmpty(p.Id))
+                        {
+                            if (config.RemovedPresetIds == null) config.RemovedPresetIds = new System.Collections.Generic.List<string>();
+                            if (!config.RemovedPresetIds.Contains(p.Id)) config.RemovedPresetIds.Add(p.Id);
+                        }
                         config.CustomProviders.Remove(p);
                         ConfigManager.SaveConfig(config);
                         RefreshCustomProvidersList();
@@ -1344,6 +1341,8 @@ namespace HostsLauncher.UI
 
             config.CustomProviders.Add(new CustomProviderConfig
             {
+                Id = "custom_" + Guid.NewGuid().ToString("N").Substring(0, 8),
+                IsPreset = false,
                 Name = name,
                 Url = url,
                 SiteUrl = string.IsNullOrEmpty(siteUrl) ? url : siteUrl,
@@ -1487,6 +1486,161 @@ namespace HostsLauncher.UI
             prompt.CancelButton = cancel;
 
             return prompt.ShowDialog() == DialogResult.OK ? txtInput.Text : "";
+        }
+
+        private void ShowPresetResetDialog()
+        {
+            int customCount = 0;
+            if (config.CustomProviders != null)
+            {
+                foreach (var p in config.CustomProviders)
+                {
+                    if (!p.IsPreset) customCount++;
+                }
+            }
+
+            using (Form dlg = new Form())
+            {
+                dlg.Text = L10n.T("ResetDialogTitle");
+                dlg.Size = new Size(550, 320);
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.MaximizeBox = false;
+                dlg.MinimizeBox = false;
+                dlg.ShowInTaskbar = false;
+                dlg.Font = new Font("Segoe UI", 9F);
+
+                Label lblPrompt = new Label
+                {
+                    Text = L10n.T("ResetDialogPrompt"),
+                    Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                    Location = new Point(20, 16),
+                    Size = new Size(500, 22)
+                };
+
+                // Option 1: Restore missing standard presets, keep custom
+                RadioButton rbRestore = new RadioButton
+                {
+                    Text = L10n.T("ResetOptRestoreStandard"),
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Location = new Point(24, 46),
+                    Size = new Size(490, 20),
+                    Checked = true
+                };
+                Label lblRestoreDesc = new Label
+                {
+                    Text = L10n.T("ResetOptRestoreStandardDesc"),
+                    ForeColor = Color.DimGray,
+                    Location = new Point(44, 68),
+                    Size = new Size(470, 28)
+                };
+
+                // Option 2: Remove only custom sources
+                RadioButton rbClean = new RadioButton
+                {
+                    Text = L10n.T("ResetOptRemoveCustom", customCount),
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Location = new Point(24, 102),
+                    Size = new Size(490, 20),
+                    Enabled = customCount > 0
+                };
+                Label lblCleanDesc = new Label
+                {
+                    Text = L10n.T("ResetOptRemoveCustomDesc"),
+                    ForeColor = Color.DimGray,
+                    Location = new Point(44, 124),
+                    Size = new Size(470, 28)
+                };
+
+                // Option 3: Full reset
+                RadioButton rbFull = new RadioButton
+                {
+                    Text = L10n.T("ResetOptFullReset"),
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Location = new Point(24, 158),
+                    Size = new Size(490, 20)
+                };
+                Label lblFullDesc = new Label
+                {
+                    Text = L10n.T("ResetOptFullResetDesc"),
+                    ForeColor = Color.DimGray,
+                    Location = new Point(44, 180),
+                    Size = new Size(470, 28)
+                };
+
+                Panel pnlBottom = new Panel
+                {
+                    Dock = DockStyle.Bottom,
+                    Height = 48,
+                    BackColor = Color.FromArgb(246, 248, 250)
+                };
+                pnlBottom.Paint += (s, e) =>
+                {
+                    using (Pen p = new Pen(Color.FromArgb(226, 232, 240)))
+                    {
+                        e.Graphics.DrawLine(p, 0, 0, pnlBottom.ClientSize.Width, 0);
+                    }
+                };
+
+                Button btnApply = new Button
+                {
+                    Text = L10n.T("BtnApply"),
+                    DialogResult = DialogResult.OK,
+                    Size = new Size(110, 28),
+                    Location = new Point(295, 10),
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Cursor = Cursors.Hand
+                };
+
+                Button btnCancel = new Button
+                {
+                    Text = L10n.T("Cancel"),
+                    DialogResult = DialogResult.Cancel,
+                    Size = new Size(100, 28),
+                    Location = new Point(415, 10),
+                    Cursor = Cursors.Hand
+                };
+
+                pnlBottom.Controls.Add(btnApply);
+                pnlBottom.Controls.Add(btnCancel);
+
+                dlg.Controls.Add(lblPrompt);
+                dlg.Controls.Add(rbRestore);
+                dlg.Controls.Add(lblRestoreDesc);
+                dlg.Controls.Add(rbClean);
+                dlg.Controls.Add(lblCleanDesc);
+                dlg.Controls.Add(rbFull);
+                dlg.Controls.Add(lblFullDesc);
+                dlg.Controls.Add(pnlBottom);
+
+                dlg.AcceptButton = btnApply;
+                dlg.CancelButton = btnCancel;
+
+                if (dlg.ShowDialog(this) == DialogResult.OK)
+                {
+                    if (rbRestore.Checked)
+                    {
+                        ConfigManager.RestoreStandardPresets(config);
+                        ConfigManager.SaveConfig(config);
+                        RefreshCustomProvidersList();
+                        ShowSystemNotification(L10n.T("Done"), L10n.T("ResetSuccessRestore"), ToolTipIcon.Info);
+                    }
+                    else if (rbClean.Checked)
+                    {
+                        int removed = ConfigManager.RemoveCustomSources(config);
+                        ConfigManager.SaveConfig(config);
+                        RefreshCustomProvidersList();
+                        ShowSystemNotification(L10n.T("Done"), L10n.T("ResetSuccessRemoveCustom", removed), ToolTipIcon.Info);
+                    }
+                    else if (rbFull.Checked)
+                    {
+                        ConfigManager.FullResetPresets(config);
+                        ConfigManager.SaveConfig(config);
+                        RefreshCustomProvidersList();
+                        ShowSystemNotification(L10n.T("Done"), L10n.T("ResetSuccessFull"), ToolTipIcon.Info);
+                    }
+                }
+            }
         }
     }
 }

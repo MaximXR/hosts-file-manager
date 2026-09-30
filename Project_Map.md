@@ -37,7 +37,8 @@ graph TD
 
     subgraph ModelsState ["4. Модели и состояние (Models & State)"]
         D1["src/Models/AppConfig.cs<br/>(AppConfig, CustomProviderConfig, ConfigManager)"]
-        D2["dist-win-unpacked/config.json<br/>(Портативное состояние рядом с EXE)"]
+        D2["dist-win-unpacked/config.json<br/>(Пользовательские настройки и источники)"]
+        D3["dist-win-unpacked/presets.json<br/>(Каталог официальных подписок)"]
     end
 
     subgraph Localization ["5. Локализация (Localization)"]
@@ -45,7 +46,7 @@ graph TD
     end
 
     subgraph Testing ["6. Верификация (Testing & Quality)"]
-        F1["tests/TestSuite.cs<br/>(Автоматический комплекс: 11 тестов)"]
+        F1["tests/TestSuite.cs<br/>(Автоматический комплекс: 12 тестов)"]
         F2["test.bat<br/>(Скрипт запуска тестов перед любой сборкой)"]
     end
 
@@ -60,6 +61,7 @@ graph TD
     C1 --> D1
     C2 --> D1
     D1 --> D2
+    D1 --> D3
     F1 --> C1
     F1 --> C2
     F1 --> D1
@@ -77,11 +79,11 @@ graph TD
    - [`/src/Services/HostsService.cs`](/src/Services/HostsService.cs): Изоляция подписок управляемыми маркерами `# === BEGIN HOSTS-MANAGER MANAGED BLOCK: <Name> ===`, сохранение пользовательских записей, проверка хеша SHA256 (защита от лишней перезаписи диска), автоматический бэкап `hosts.bak`, сброс DNS через WinAPI `dnsapi.dll!DnsFlushResolverCache` + `ipconfig /flushdns`.
    - [`/src/Services/SchedulerService.cs`](/src/Services/SchedulerService.cs): Взаимодействие со службой Планировщика Windows (`schtasks.exe`). Модифицирует XML задачи для инъекции флага `<RunOnlyIfIdle>true</RunOnlyIfIdle>` (обновление строго при простое ПК) и декодирует консольный вывод `schtasks.exe` в системной OEM-кодировке (CP866) для защиты от кракозябр в локализованных ОС.
 4. **Модели и конфигурация (`Models & State`)**:
-   - [`/src/Models/AppConfig.cs`](/src/Models/AppConfig.cs): Модели `AppConfig`, `CustomProviderConfig`. Статический класс `ConfigManager` обеспечивает безопасную сериализацию JSON через `System.Web.Script.Serialization` и fallback на встроенные пресеты (GeoHide, GitHub520, StevenBlack, WindowsSpyBlocker, AdAway, Dan Pollock).
+   - [`/src/Models/AppConfig.cs`](/src/Models/AppConfig.cs): Модели `AppConfig`, `CustomProviderConfig`. Статический класс `ConfigManager` обеспечивает раздельное хранение каталога официальных подписок ([`dist-win-unpacked/presets.json`](/dist-win-unpacked/presets.json)) и пользовательского состояния ([`dist-win-unpacked/config.json`](/dist-win-unpacked/config.json)), отслеживает удаленные пресеты (`RemovedPresetIds`) и реализует трехуровневый сброс (восстановление пресетов с сохранением кастомных источников, удаление только кастомных источников, полный сброс).
 5. **Локализация (`Localization`)**:
    - [`/src/Localization/L10n.cs`](/src/Localization/L10n.cs): Единый словарь строк для русского и английского языков. Полная паритетность ключей RU ⟷ EN гарантируется автотестом.
 6. **Автоматическое тестирование (`Testing`)**:
-   - [`/tests/TestSuite.cs`](/tests/TestSuite.cs): Комплекс из 11 автоматических тестов без сторонних тестовых фреймворков. Проверяет хеширование, парсинг и изолированное удаление блоков hosts, корректность инъекции XML планировщика, паритет словарей, непустые контролы интерфейса на обоих языках и адаптивное вертикальное растяжение окна.
+   - [`/tests/TestSuite.cs`](/tests/TestSuite.cs): Комплекс из 12 автоматических тестов без сторонних тестовых фреймворков. Проверяет хеширование, парсинг и изолированное удаление блоков hosts, корректность инъекции XML планировщика, паритет словарей, разделение пресетов и кастомных источников, непустые контролы интерфейса на обоих языках и адаптивное вертикальное растяжение окна.
 
 ---
 
@@ -99,6 +101,9 @@ HostsLauncher/
 ├── CHANGELOG.md                     # Журнал изменений (Keep a Changelog, двуязычный)
 ├── build.bat                        # Идемпотентный сборочный скрипт (тесты -> csc -> dist/)
 ├── test.bat                         # Компиляция и запуск тестового набора TestSuite
+│
+├── docs/                            # Документация и скриншоты для README
+│   └── screenshots/                 # Графические иллюстрации работы интерфейса
 │
 ├── drafts/                          # Черновики разработки
 │   └── next_release.md              # Накопительный журнал изменений до публикации релиза
@@ -127,12 +132,13 @@ HostsLauncher/
 │       └── MainForm.cs              # Окно управления, динамическая верстка, Toast/Balloon
 │
 ├── tests/                           # Комплекс автотестов
-│   └── TestSuite.cs                 # Исходный код автономного тестового раннера (11 проверок)
+│   └── TestSuite.cs                 # Исходный код автономного тестового раннера (12 проверок)
 │
 ├── dist-win-unpacked/               # Распакованные рабочие бинарники (для локального теста)
 │   ├── OpenHostsFile.exe            # Скомпилированный раннер
 │   ├── HostsManager.exe             # Скомпилированная панель управления
-│   └── config.json                  # Локальный файл конфигурации
+│   ├── presets.json                 # Каталог предустановленных подписок (обновляется с версиями)
+│   └── config.json                  # Пользовательская конфигурация (сохраняется при обновлениях)
 │
 └── dist/                            # Каталог готовых упакованных релизов (.gitignore)
     └── HostsLauncher-v*.zip         # Портативные zip-архивы для выгрузки на GitHub Releases
@@ -155,7 +161,7 @@ sequenceDiagram
 
     Dev->>Draft: Запись изменений во время разработки
     Dev->>Map: Актуализация карты при изменении структуры
-    Dev->>Test: Запуск набора тестов (все 11 тестов обязаны пройти)
+    Dev->>Test: Запуск набора тестов (все 12 тестов обязаны пройти)
     Dev->>Build: Запуск сборки
     Build->>Test: Авто-прогон тестов перед компиляцией
     Build->>Build: Компиляция OpenHostsFile.exe и HostsManager.exe

@@ -48,6 +48,26 @@
 
 ---
 
+### Скриншоты интерфейса
+
+<div align="center">
+  <p><b>Быстрый доступ к hosts и синхронизация прямо из меню «Пуск» Windows:</b></p>
+  <img src="docs/screenshots/start-menu-pinned.png" width="460" alt="Hosts Launcher в меню Пуск" />
+  <br/><br/>
+  <table>
+    <tr>
+      <td align="center"><b>Вкладка 1: Создание ярлыков</b></td>
+      <td align="center"><b>Вкладка 2: Подписки и планировщик</b></td>
+    </tr>
+    <tr>
+      <td><img src="docs/screenshots/tab1-shortcuts-ru.png" width="370" alt="Вкладка Создать ярлык" /></td>
+      <td><img src="docs/screenshots/tab2-subscriptions-ru.png" width="370" alt="Вкладка Подписки и автообновление" /></td>
+    </tr>
+  </table>
+</div>
+
+---
+
 ### Основные возможности
 
 * 🚀 **Быстрый доступ и генератор ярлыков (меню «Пуск», панель задач, Рабочий стол):**
@@ -82,6 +102,8 @@ HostsLauncher/
 │   ├── UI/MainForm.cs             # Графический интерфейс Windows Forms
 │   ├── HostsManagerProgram.cs     # Точка входа HostsManager.exe
 │   └── Program.cs                 # Точка входа OpenHostsFile.exe (быстрый раннер)
+├── docs/
+│   └── screenshots/               # Скриншоты интерфейса для документации
 ├── tests/
 │   └── TestSuite.cs               # Автоматический тестовый комплекс (10 тестов)
 ├── dist-win-unpacked/             # Готовые бинарники для работы
@@ -155,6 +177,26 @@ The Windows `hosts` file is essential for developers and power users to configur
 
 ---
 
+### Screenshots
+
+<div align="center">
+  <p><b>Fast hosts access and 1-click update tile group in Windows Start Menu:</b></p>
+  <img src="docs/screenshots/start-menu-pinned.png" width="460" alt="Hosts Launcher in Windows Start Menu" />
+  <br/><br/>
+  <table>
+    <tr>
+      <td align="center"><b>Tab 1: Shortcut Generator</b></td>
+      <td align="center"><b>Tab 2: Subscriptions & Scheduler</b></td>
+    </tr>
+    <tr>
+      <td><img src="docs/screenshots/tab1-shortcuts-en.png" width="370" alt="Create Shortcut Tab" /></td>
+      <td><img src="docs/screenshots/tab2-subscriptions-en.png" width="370" alt="Subscriptions and Scheduler Tab" /></td>
+    </tr>
+  </table>
+</div>
+
+---
+
 ### Key Features
 
 * 🚀 **Fast Access & Shortcut Generator (Start Menu, Taskbar, Desktop):**
@@ -189,6 +231,8 @@ HostsLauncher/
 │   ├── UI/MainForm.cs             # Windows Forms GUI
 │   ├── HostsManagerProgram.cs     # HostsManager.exe entrypoint
 │   └── Program.cs                 # OpenHostsFile.exe entrypoint (fast runner)
+├── docs/
+│   └── screenshots/               # Interface screenshots for documentation
 ├── tests/
 │   └── TestSuite.cs               # Automated test suite (10 tests)
 ├── dist-win-unpacked/             # Compiled binaries ready to run

@@ -28,10 +28,21 @@ namespace HostsLauncher.Tests
             RunTest("HostsService: Block Replacement & Clean Removal", Test_HostsService_BlockReplacementAndRemoval);
             RunTest("SchedulerService: XML RunOnlyIfIdle Injection", Test_Scheduler_ProcessIdleXml);
             RunTest("ConfigManager: JSON Serialization & Defaults", Test_ConfigManager_Serialization);
+            RunTest("ConfigManager: Presets & Custom Sources Separation and Reset Actions", Test_ConfigManager_PresetsAndCustomSources);
             RunTest("UI: Form Controls Non-Empty on Startup (Russian)", Test_UI_ControlsNonEmpty_Russian);
             RunTest("UI: Form Controls Non-Empty & Localized on English Switch", Test_UI_ControlsNonEmpty_English);
             RunTest("UI: Recursive Deep Check of All Visual Controls", Test_UI_RecursiveControlsCheck);
             RunTest("UI: Elastic Custom Providers Section Dynamic Resizing", Test_UI_ElasticCustomSectionResizing);
+
+            // Clean up any test artifacts generated next to TestSuite.exe
+            try
+            {
+                string localPreset = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "presets.json");
+                if (System.IO.File.Exists(localPreset)) System.IO.File.Delete(localPreset);
+                string localConfig = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json");
+                if (System.IO.File.Exists(localConfig)) System.IO.File.Delete(localConfig);
+            }
+            catch { }
 
             Console.WriteLine();
             Console.WriteLine("=================================================");
@@ -229,6 +240,62 @@ namespace HostsLauncher.Tests
             finally
             {
                 if (System.IO.File.Exists(tempFile)) System.IO.File.Delete(tempFile);
+            }
+        }
+
+        private static void Test_ConfigManager_PresetsAndCustomSources()
+        {
+            string tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "hl_test_" + Guid.NewGuid().ToString("N"));
+            System.IO.Directory.CreateDirectory(tempDir);
+            string presetsPath = System.IO.Path.Combine(tempDir, "presets.json");
+            string configPath = System.IO.Path.Combine(tempDir, "config.json");
+
+            try
+            {
+                // 1. Test saving and loading presets.json
+                var defaultPresets = ConfigManager.GetDefaultPresets();
+                ConfigManager.SavePresets(defaultPresets, presetsPath);
+                Assert(System.IO.File.Exists(presetsPath), "presets.json was not created");
+
+                var loadedPresets = ConfigManager.LoadPresets(presetsPath);
+                AssertEqual(defaultPresets.Count, loadedPresets.Count, "Loaded presets count mismatch");
+                Assert(loadedPresets[0].IsPreset, "First preset must have IsPreset == true");
+
+                // 2. Setup config with 1 custom user source and simulate deleted preset
+                AppConfig cfg = new AppConfig();
+                cfg.CustomProviders = new List<CustomProviderConfig>();
+                cfg.CustomProviders.Add(new CustomProviderConfig { Id = "github520", IsPreset = true, Name = "GitHub520", Url = "https://example.com/gh" });
+                cfg.CustomProviders.Add(new CustomProviderConfig { Id = "stevenblack", IsPreset = true, Name = "StevenBlack", Url = "https://example.com/sb" });
+                cfg.CustomProviders.Add(new CustomProviderConfig { Id = "custom_work", IsPreset = false, Name = "My Work Hosts", Url = "https://work.com/hosts.txt" });
+                cfg.RemovedPresetIds.Add("windowsspyblocker");
+
+                ConfigManager.SaveConfig(cfg, configPath);
+
+                // 3. Test LoadConfig normalizes and doesn't resurrect deleted preset, but preserves custom source
+                AppConfig loadedCfg = ConfigManager.LoadConfig(configPath, presetsPath);
+                Assert(loadedCfg.CustomProviders.Exists(p => p.Id == "custom_work"), "Custom user source was lost!");
+                Assert(!loadedCfg.CustomProviders.Exists(p => p.Id == "windowsspyblocker"), "Deleted preset was resurrected without user request!");
+
+                // 4. Test Choice 1: Restore missing standard presets (MUST preserve custom source)
+                ConfigManager.RestoreStandardPresets(loadedCfg, presetsPath);
+                Assert(loadedCfg.CustomProviders.Exists(p => p.Id == "custom_work"), "Custom user source lost during RestoreStandardPresets!");
+                Assert(loadedCfg.CustomProviders.Exists(p => p.Id == "windowsspyblocker"), "Missing preset was not restored during RestoreStandardPresets!");
+                AssertEqual(0, loadedCfg.RemovedPresetIds.Count, "RemovedPresetIds should be cleared upon restore");
+
+                // 5. Test Choice 2: Remove only custom sources
+                int removed = ConfigManager.RemoveCustomSources(loadedCfg);
+                AssertEqual(1, removed, "Should remove exactly 1 custom source");
+                Assert(!loadedCfg.CustomProviders.Exists(p => p.Id == "custom_work"), "Custom source should be removed");
+                Assert(loadedCfg.CustomProviders.Exists(p => p.Id == "github520"), "Presets must not be removed by RemoveCustomSources");
+
+                // 6. Test Choice 3: Full Reset
+                ConfigManager.FullResetPresets(loadedCfg, presetsPath);
+                AssertEqual(loadedPresets.Count, loadedCfg.CustomProviders.Count, "FullReset count mismatch");
+                Assert(loadedCfg.CustomProviders.TrueForAll(p => p.IsPreset), "All items after FullReset must be presets");
+            }
+            finally
+            {
+                try { System.IO.Directory.Delete(tempDir, true); } catch { }
             }
         }
 

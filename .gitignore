@@ -11,6 +11,7 @@
 dist/
 obj/
 bin/
+tests/*.json
 
 # Raw icon source uploads
 resources/111*
