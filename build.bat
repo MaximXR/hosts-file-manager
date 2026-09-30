@@ -36,7 +36,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo [2/3] Compiling HostsManager.exe (Modular GUI, Subscriptions, Scheduler, i18n)...
-"%CSC%" /nologo /target:winexe /optimize+ /win32icon:"%~dp0resources\app.ico" /resource:"%~dp0resources\app.ico",app.ico /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%DIST_UNPACKED%\HostsManager.exe" "%~dp0src\Models\*.cs" "%~dp0src\Localization\*.cs" "%~dp0src\Services\*.cs" "%~dp0src\UI\*.cs" "%~dp0src\HostsManagerProgram.cs"
+"%CSC%" /nologo /target:winexe /optimize+ /win32icon:"%~dp0resources\app.ico" /resource:"%~dp0resources\app.ico",app.ico /resource:"%~dp0resources\sync.ico",sync.ico /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%DIST_UNPACKED%\HostsManager.exe" "%~dp0src\Models\*.cs" "%~dp0src\Localization\*.cs" "%~dp0src\Services\*.cs" "%~dp0src\UI\*.cs" "%~dp0src\HostsManagerProgram.cs"
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Failed to compile HostsManager.exe
     exit /b %ERRORLEVEL%

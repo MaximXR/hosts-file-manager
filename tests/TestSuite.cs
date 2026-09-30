@@ -252,6 +252,7 @@ namespace HostsLauncher.Tests
                 Assert(!string.IsNullOrWhiteSpace(form.chkAdmin.Text), "chkAdmin text is empty!");
                 Assert(!string.IsNullOrWhiteSpace(form.btnCreateShortcut.Text), "btnCreateShortcut text is empty!");
                 Assert(!string.IsNullOrWhiteSpace(form.gbExtraShortcuts.Text), "gbExtraShortcuts GroupBox title is empty!");
+                Assert(!string.IsNullOrWhiteSpace(form.lblUpdateIcon.Text), "lblUpdateIcon text is empty!");
                 Assert(!string.IsNullOrWhiteSpace(form.btnCreateUpdateShortcut.Text), "btnCreateUpdateShortcut text is empty!");
                 Assert(!string.IsNullOrWhiteSpace(form.btnCreateManagerShortcut.Text), "btnCreateManagerShortcut text is empty!");
                 Assert(!string.IsNullOrWhiteSpace(form.lblExtraHint.Text), "lblExtraHint text is empty!");

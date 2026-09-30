@@ -63,6 +63,8 @@ namespace HostsLauncher.UI
         internal Label lblShortcutHint;
         internal GroupBox gbSettings;
         internal GroupBox gbExtraShortcuts;
+        internal Label lblUpdateIcon;
+        internal ComboBox cboUpdateIcon;
         internal Label lblExtraHint;
 
         // Providers tab (GeoHide + Sources + Task Scheduler)
@@ -258,47 +260,56 @@ namespace HostsLauncher.UI
 
             gbSettings = new GroupBox
             {
-                Location = new Point(15, 178),
-                Size = new Size(645, 126)
+                Location = new Point(15, 172),
+                Size = new Size(645, 170)
             };
 
-            lblShortcutName = new Label { Location = new Point(20, 26), AutoSize = true };
-            txtShortcutName = new TextBox { Text = "Hosts", Location = new Point(140, 23), Size = new Size(200, 23) };
+            lblShortcutName = new Label { Location = new Point(20, 26), Size = new Size(200, 20) };
+            txtShortcutName = new TextBox { Text = "Hosts", Location = new Point(225, 23), Size = new Size(395, 23) };
 
-            lblIcon = new Label { Location = new Point(20, 58), AutoSize = true };
-            cboIcon = new ComboBox { Location = new Point(140, 55), Size = new Size(480, 23), DropDownStyle = ComboBoxStyle.DropDownList };
+            lblIcon = new Label { Location = new Point(20, 58), Size = new Size(200, 20) };
+            cboIcon = new ComboBox { Location = new Point(225, 55), Size = new Size(395, 23), DropDownStyle = ComboBoxStyle.DropDownList };
             cboIcon.Items.Add(L10n.T("IconSystem"));
             cboIcon.Items.Add(L10n.T("IconNotepad"));
             cboIcon.Items.Add(L10n.T("IconNpp"));
+            cboIcon.Items.Add(L10n.T("IconShield"));
             cboIcon.SelectedIndex = 0;
 
-            chkAdmin = new CheckBox { Location = new Point(20, 90), AutoSize = true };
+            chkAdmin = new CheckBox { Location = new Point(20, 88), AutoSize = true };
+
+            btnCreateShortcut = new Button
+            {
+                Location = new Point(20, 118),
+                Size = new Size(605, 38),
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                BackColor = Color.FromArgb(235, 245, 255)
+            };
+            btnCreateShortcut.Click += BtnCreateShortcut_Click;
 
             gbSettings.Controls.Add(lblShortcutName);
             gbSettings.Controls.Add(txtShortcutName);
             gbSettings.Controls.Add(lblIcon);
             gbSettings.Controls.Add(cboIcon);
             gbSettings.Controls.Add(chkAdmin);
-
-            btnCreateShortcut = new Button
-            {
-                Location = new Point(15, 312),
-                Size = new Size(645, 40),
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                BackColor = Color.FromArgb(235, 245, 255)
-            };
-            btnCreateShortcut.Click += BtnCreateShortcut_Click;
+            gbSettings.Controls.Add(btnCreateShortcut);
 
             gbExtraShortcuts = new GroupBox
             {
-                Location = new Point(15, 360),
-                Size = new Size(645, 115)
+                Location = new Point(15, 350),
+                Size = new Size(645, 192)
             };
+
+            lblUpdateIcon = new Label { Location = new Point(20, 26), Size = new Size(200, 20) };
+            cboUpdateIcon = new ComboBox { Location = new Point(225, 23), Size = new Size(395, 23), DropDownStyle = ComboBoxStyle.DropDownList };
+            cboUpdateIcon.Items.Add(L10n.T("UpdateIconSyncShield"));
+            cboUpdateIcon.Items.Add(L10n.T("UpdateIconSystem"));
+            cboUpdateIcon.Items.Add(L10n.T("UpdateIconApp"));
+            cboUpdateIcon.SelectedIndex = 0;
 
             btnCreateUpdateShortcut = new Button
             {
-                Location = new Point(20, 26),
-                Size = new Size(295, 38),
+                Location = new Point(20, 56),
+                Size = new Size(605, 38),
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240)
             };
@@ -306,34 +317,35 @@ namespace HostsLauncher.UI
 
             btnCreateManagerShortcut = new Button
             {
-                Location = new Point(330, 26),
-                Size = new Size(295, 38),
-                Font = new Font("Segoe UI", 9.5F),
+                Location = new Point(20, 100),
+                Size = new Size(605, 38),
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
                 BackColor = Color.FromArgb(245, 245, 250)
             };
             btnCreateManagerShortcut.Click += BtnCreateManagerShortcut_Click;
 
             lblExtraHint = new Label
             {
-                Location = new Point(20, 72),
-                Size = new Size(605, 32),
+                Location = new Point(20, 146),
+                Size = new Size(605, 36),
                 ForeColor = Color.DarkSlateGray
             };
 
+            gbExtraShortcuts.Controls.Add(lblUpdateIcon);
+            gbExtraShortcuts.Controls.Add(cboUpdateIcon);
             gbExtraShortcuts.Controls.Add(btnCreateUpdateShortcut);
             gbExtraShortcuts.Controls.Add(btnCreateManagerShortcut);
             gbExtraShortcuts.Controls.Add(lblExtraHint);
 
             lblShortcutHint = new Label
             {
-                Location = new Point(15, 485),
+                Location = new Point(15, 550),
                 Size = new Size(645, 35),
                 ForeColor = Color.DimGray
             };
 
             tabShortcuts.Controls.Add(gbEditor);
             tabShortcuts.Controls.Add(gbSettings);
-            tabShortcuts.Controls.Add(btnCreateShortcut);
             tabShortcuts.Controls.Add(gbExtraShortcuts);
             tabShortcuts.Controls.Add(lblShortcutHint);
         }
@@ -589,11 +601,24 @@ namespace HostsLauncher.UI
                 cboIcon.Items.Add(L10n.T("IconSystem"));
                 cboIcon.Items.Add(L10n.T("IconNotepad"));
                 cboIcon.Items.Add(L10n.T("IconNpp"));
+                cboIcon.Items.Add(L10n.T("IconShield"));
                 cboIcon.SelectedIndex = (iconIdx >= 0 && iconIdx < cboIcon.Items.Count) ? iconIdx : 0;
             }
 
             if (btnCreateShortcut != null) btnCreateShortcut.Text = L10n.T("BtnCreateHostsShortcut");
             if (gbExtraShortcuts != null) gbExtraShortcuts.Text = L10n.T("GbExtraShortcutsTitle");
+            if (lblUpdateIcon != null) lblUpdateIcon.Text = L10n.T("LblUpdateIcon");
+
+            if (cboUpdateIcon != null)
+            {
+                int updateIdx = cboUpdateIcon.SelectedIndex;
+                cboUpdateIcon.Items.Clear();
+                cboUpdateIcon.Items.Add(L10n.T("UpdateIconSyncShield"));
+                cboUpdateIcon.Items.Add(L10n.T("UpdateIconSystem"));
+                cboUpdateIcon.Items.Add(L10n.T("UpdateIconApp"));
+                cboUpdateIcon.SelectedIndex = (updateIdx >= 0 && updateIdx < cboUpdateIcon.Items.Count) ? updateIdx : 0;
+            }
+
             if (btnCreateUpdateShortcut != null) btnCreateUpdateShortcut.Text = L10n.T("BtnCreateUpdateShortcut");
             if (btnCreateManagerShortcut != null) btnCreateManagerShortcut.Text = L10n.T("BtnCreateManagerShortcut");
             if (lblExtraHint != null) lblExtraHint.Text = L10n.T("LblExtraHint");
@@ -888,6 +913,10 @@ namespace HostsLauncher.UI
                 string npp = @"C:\Program Files\Notepad++\notepad++.exe";
                 if (File.Exists(npp)) iconLoc = npp + ",0";
             }
+            else if (cboIcon.SelectedIndex == 3)
+            {
+                iconLoc = Application.ExecutablePath + ",0";
+            }
 
             string linkName = string.IsNullOrEmpty(txtShortcutName.Text) ? L10n.T("ShortcutDefaultName") : txtShortcutName.Text.Trim();
 
@@ -903,7 +932,64 @@ namespace HostsLauncher.UI
         {
             string exePath = Application.ExecutablePath;
             string iconLoc = @"C:\Windows\System32\shell32.dll,238";
+
+            int sel = (cboUpdateIcon != null) ? cboUpdateIcon.SelectedIndex : 0;
+            if (sel == 0)
+            {
+                // Изумрудный щит со стрелками обновления (новинка)
+                string syncIcoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"resources\sync.ico");
+                if (!File.Exists(syncIcoPath))
+                {
+                    EnsureResourceExtracted("sync.ico", syncIcoPath);
+                }
+
+                if (File.Exists(syncIcoPath))
+                {
+                    iconLoc = syncIcoPath + ",0";
+                }
+                else
+                {
+                    iconLoc = exePath + ",0";
+                }
+            }
+            else if (sel == 1)
+            {
+                iconLoc = @"C:\Windows\System32\shell32.dll,238";
+            }
+            else if (sel == 2)
+            {
+                iconLoc = exePath + ",0";
+            }
+
             CreateDesktopShortcut(exePath, "/update-now", iconLoc, L10n.T("ShortcutUpdateName"), L10n.T("ShortcutUpdateDesc"));
+        }
+
+        private static void EnsureResourceExtracted(string resName, string targetPath)
+        {
+            try
+            {
+                if (!File.Exists(targetPath))
+                {
+                    string dir = Path.GetDirectoryName(targetPath);
+                    if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                    using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resName))
+                    {
+                        if (stream != null)
+                        {
+                            using (FileStream fs = new FileStream(targetPath, FileMode.Create, FileAccess.Write))
+                            {
+                                byte[] buf = new byte[8192];
+                                int read;
+                                while ((read = stream.Read(buf, 0, buf.Length)) > 0)
+                                {
+                                    fs.Write(buf, 0, read);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
         }
 
         private void BtnCreateManagerShortcut_Click(object sender, EventArgs e)
