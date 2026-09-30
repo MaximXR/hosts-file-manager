@@ -23,7 +23,6 @@ if %ERRORLEVEL% neq 0 (
     echo [ERROR] Failed to compile OpenHostsFile.exe
     exit /b %ERRORLEVEL%
 )
-copy /y "%DIST_DIR%\OpenHostsFile.exe" "%DIST_DIR%\OpenHosts.exe" >nul
 
 echo [2/2] Compiling HostsManager.exe (GUI, Shortcut Creator, Subscriptions, Scheduler)...
 "%CSC%" /nologo /target:winexe /optimize+ /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%DIST_DIR%\HostsManager.exe" "%~dp0src\HostsManager.cs"
