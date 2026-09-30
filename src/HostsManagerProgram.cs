@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using HostsLauncher.Localization;
 using HostsLauncher.Models;
@@ -10,9 +11,18 @@ namespace HostsLauncher
 {
     static class HostsManagerProgram
     {
+        [DllImport("shell32.dll", SetLastError = true)]
+        private static extern int SetCurrentProcessExplicitAppUserModelID([MarshalAs(UnmanagedType.LPWStr)] string AppID);
+
         [STAThread]
         static void Main(string[] args)
         {
+            try
+            {
+                SetCurrentProcessExplicitAppUserModelID("MaximXR.HostsLauncher.Manager.1.2");
+            }
+            catch { }
+
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
 
             AppConfig config = ConfigManager.LoadConfig();

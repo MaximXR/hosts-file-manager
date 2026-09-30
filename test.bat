@@ -17,7 +17,7 @@ if "%CSC%"=="" (
 set "TEST_OUT=%~dp0tests\TestSuite.exe"
 
 echo [TEST] Compiling Automated Test Suite...
-"%CSC%" /nologo /target:exe /optimize+ /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%TEST_OUT%" "%~dp0src\Models\*.cs" "%~dp0src\Localization\*.cs" "%~dp0src\Services\*.cs" "%~dp0src\UI\*.cs" "%~dp0tests\TestSuite.cs"
+"%CSC%" /nologo /target:exe /optimize+ /win32icon:"%~dp0resources\app.ico" /resource:"%~dp0resources\app.ico",app.ico /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll /out:"%TEST_OUT%" "%~dp0src\Models\*.cs" "%~dp0src\Localization\*.cs" "%~dp0src\Services\*.cs" "%~dp0src\UI\*.cs" "%~dp0tests\TestSuite.cs"
 
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Test suite compilation failed!

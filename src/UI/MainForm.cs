@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 using HostsLauncher.Localization;
@@ -12,6 +14,25 @@ namespace HostsLauncher.UI
 {
     public class MainForm : Form
     {
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+        private const int WM_SETICON = 0x80;
+        private const int ICON_SMALL = 0;
+        private const int ICON_BIG = 1;
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            try
+            {
+                if (this.Icon != null)
+                {
+                    SendMessage(this.Handle, WM_SETICON, (IntPtr)ICON_BIG, this.Icon.Handle);
+                    SendMessage(this.Handle, WM_SETICON, (IntPtr)ICON_SMALL, this.Icon.Handle);
+                }
+            }
+            catch { }
+        }
         // Header and Language
         internal Panel pnlHeader;
         internal Label lblAppInfo;
@@ -92,7 +113,23 @@ namespace HostsLauncher.UI
 
             try
             {
-                this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+                Stream resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("app.ico");
+                if (resStream != null)
+                {
+                    this.Icon = new Icon(resStream);
+                }
+                else
+                {
+                    string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"resources\app.ico");
+                    if (File.Exists(iconPath))
+                    {
+                        this.Icon = new Icon(iconPath);
+                    }
+                    else
+                    {
+                        this.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+                    }
+                }
             }
             catch { }
 
@@ -107,6 +144,7 @@ namespace HostsLauncher.UI
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
+            this.ShowInTaskbar = true;
 
             pnlHeader = new Panel
             {
