@@ -66,6 +66,12 @@ namespace HostsLauncher.UI
         internal Button btnCreateUpdateShortcut;
         internal Button btnCreateManagerShortcut;
         internal Label lblShortcutHint;
+        internal Button btnOpenHostsHeader;
+        internal GroupBox gbHostsShortcut;
+        internal GroupBox gbUpdateShortcut;
+        internal GroupBox gbManagerShortcut;
+        internal Label lblUpdateHint;
+        internal Label lblManagerHint;
         internal GroupBox gbSettings;
         internal GroupBox gbExtraShortcuts;
         internal Label lblUpdateIcon;
@@ -173,6 +179,17 @@ namespace HostsLauncher.UI
                 AutoSize = true
             };
 
+            btnOpenHostsHeader = new Button
+            {
+                Location = new Point(205, 5),
+                Size = new Size(195, 26),
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Regular),
+                BackColor = Color.FromArgb(255, 255, 255),
+                Cursor = Cursors.Hand,
+                FlatStyle = FlatStyle.Standard
+            };
+            btnOpenHostsHeader.Click += BtnOpenHostsHeader_Click;
+
             lblLang = new Label
             {
                 Location = new Point(415, 9),
@@ -182,8 +199,8 @@ namespace HostsLauncher.UI
 
             cboLanguage = new ComboBox
             {
-                Location = new Point(545, 6),
-                Size = new Size(115, 24),
+                Location = new Point(540, 6),
+                Size = new Size(120, 24),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             cboLanguage.Items.Add("🇷🇺 Русский");
@@ -202,6 +219,7 @@ namespace HostsLauncher.UI
             };
 
             pnlHeader.Controls.Add(lblAppInfo);
+            pnlHeader.Controls.Add(btnOpenHostsHeader);
             pnlHeader.Controls.Add(lblLang);
             pnlHeader.Controls.Add(cboLanguage);
 
@@ -221,20 +239,23 @@ namespace HostsLauncher.UI
 
         private void InitShortcutsTab()
         {
-            gbEditor = new GroupBox
+            // Блок 1: Ярлык открытия файла hosts в редакторе
+            gbHostsShortcut = new GroupBox
             {
-                Location = new Point(15, 10),
-                Size = new Size(645, 160)
+                Location = new Point(15, 8),
+                Size = new Size(645, 272)
             };
+            gbEditor = gbHostsShortcut;
+            gbSettings = gbHostsShortcut;
 
-            rbOpenWith = new RadioButton { Location = new Point(20, 24), AutoSize = true, Checked = true };
-            rbNpp = new RadioButton { Location = new Point(20, 48), AutoSize = true };
-            rbCode = new RadioButton { Location = new Point(20, 72), AutoSize = true };
-            rbNotepad = new RadioButton { Location = new Point(20, 96), AutoSize = true };
-            rbCustom = new RadioButton { Location = new Point(20, 120), AutoSize = true };
+            rbOpenWith = new RadioButton { Location = new Point(20, 22), AutoSize = true, Checked = true };
+            rbNpp = new RadioButton { Location = new Point(20, 44), AutoSize = true };
+            rbCode = new RadioButton { Location = new Point(20, 66), AutoSize = true };
+            rbNotepad = new RadioButton { Location = new Point(20, 88), AutoSize = true };
+            rbCustom = new RadioButton { Location = new Point(20, 110), AutoSize = true };
 
-            txtCustomPath = new TextBox { Location = new Point(160, 119), Size = new Size(380, 23), Enabled = false };
-            btnBrowseCustom = new Button { Location = new Point(550, 118), Size = new Size(80, 25), Enabled = false };
+            txtCustomPath = new TextBox { Location = new Point(165, 109), Size = new Size(375, 23), Enabled = false };
+            btnBrowseCustom = new Button { Location = new Point(545, 108), Size = new Size(80, 25), Enabled = false };
 
             rbCustom.CheckedChanged += (s, e) =>
             {
@@ -255,57 +276,61 @@ namespace HostsLauncher.UI
                 }
             };
 
-            gbEditor.Controls.Add(rbOpenWith);
-            gbEditor.Controls.Add(rbNpp);
-            gbEditor.Controls.Add(rbCode);
-            gbEditor.Controls.Add(rbNotepad);
-            gbEditor.Controls.Add(rbCustom);
-            gbEditor.Controls.Add(txtCustomPath);
-            gbEditor.Controls.Add(btnBrowseCustom);
-
-            gbSettings = new GroupBox
+            Panel pnlDivider = new Panel
             {
-                Location = new Point(15, 172),
-                Size = new Size(645, 170)
+                Location = new Point(20, 138),
+                Size = new Size(605, 1),
+                BackColor = Color.FromArgb(226, 232, 240)
             };
 
-            lblShortcutName = new Label { Location = new Point(20, 26), Size = new Size(200, 20) };
-            txtShortcutName = new TextBox { Text = "Hosts", Location = new Point(225, 23), Size = new Size(395, 23) };
+            lblShortcutName = new Label { Location = new Point(20, 147), Size = new Size(200, 20) };
+            txtShortcutName = new TextBox { Text = "Hosts", Location = new Point(225, 145), Size = new Size(400, 23) };
 
-            lblIcon = new Label { Location = new Point(20, 58), Size = new Size(200, 20) };
-            cboIcon = new ComboBox { Location = new Point(225, 55), Size = new Size(395, 23), DropDownStyle = ComboBoxStyle.DropDownList };
+            lblIcon = new Label { Location = new Point(20, 175), Size = new Size(200, 20) };
+            cboIcon = new ComboBox { Location = new Point(225, 173), Size = new Size(400, 23), DropDownStyle = ComboBoxStyle.DropDownList };
             cboIcon.Items.Add(L10n.T("IconSystem"));
             cboIcon.Items.Add(L10n.T("IconNotepad"));
             cboIcon.Items.Add(L10n.T("IconNpp"));
             cboIcon.Items.Add(L10n.T("IconShield"));
             cboIcon.SelectedIndex = 0;
 
-            chkAdmin = new CheckBox { Location = new Point(20, 88), AutoSize = true };
+            chkAdmin = new CheckBox { Location = new Point(20, 201), AutoSize = true };
 
             btnCreateShortcut = new Button
             {
-                Location = new Point(20, 118),
-                Size = new Size(605, 38),
+                Location = new Point(20, 226),
+                Size = new Size(605, 34),
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
-                BackColor = Color.FromArgb(235, 245, 255)
+                BackColor = Color.FromArgb(235, 245, 255),
+                Cursor = Cursors.Hand
             };
             btnCreateShortcut.Click += BtnCreateShortcut_Click;
 
-            gbSettings.Controls.Add(lblShortcutName);
-            gbSettings.Controls.Add(txtShortcutName);
-            gbSettings.Controls.Add(lblIcon);
-            gbSettings.Controls.Add(cboIcon);
-            gbSettings.Controls.Add(chkAdmin);
-            gbSettings.Controls.Add(btnCreateShortcut);
+            gbHostsShortcut.Controls.Add(rbOpenWith);
+            gbHostsShortcut.Controls.Add(rbNpp);
+            gbHostsShortcut.Controls.Add(rbCode);
+            gbHostsShortcut.Controls.Add(rbNotepad);
+            gbHostsShortcut.Controls.Add(rbCustom);
+            gbHostsShortcut.Controls.Add(txtCustomPath);
+            gbHostsShortcut.Controls.Add(btnBrowseCustom);
+            gbHostsShortcut.Controls.Add(pnlDivider);
+            gbHostsShortcut.Controls.Add(lblShortcutName);
+            gbHostsShortcut.Controls.Add(txtShortcutName);
+            gbHostsShortcut.Controls.Add(lblIcon);
+            gbHostsShortcut.Controls.Add(cboIcon);
+            gbHostsShortcut.Controls.Add(chkAdmin);
+            gbHostsShortcut.Controls.Add(btnCreateShortcut);
 
-            gbExtraShortcuts = new GroupBox
+            // Блок 2: Ярлык быстрого обновления hosts (в 1 клик)
+            gbUpdateShortcut = new GroupBox
             {
-                Location = new Point(15, 350),
-                Size = new Size(645, 192)
+                Location = new Point(15, 286),
+                Size = new Size(645, 122)
             };
+            gbExtraShortcuts = gbUpdateShortcut;
 
-            lblUpdateIcon = new Label { Location = new Point(20, 26), Size = new Size(200, 20) };
-            cboUpdateIcon = new ComboBox { Location = new Point(225, 23), Size = new Size(395, 23), DropDownStyle = ComboBoxStyle.DropDownList };
+            lblUpdateIcon = new Label { Location = new Point(20, 24), Size = new Size(200, 20) };
+            cboUpdateIcon = new ComboBox { Location = new Point(225, 22), Size = new Size(400, 23), DropDownStyle = ComboBoxStyle.DropDownList };
             cboUpdateIcon.Items.Add(L10n.T("UpdateIconSyncShield"));
             cboUpdateIcon.Items.Add(L10n.T("UpdateIconSystem"));
             cboUpdateIcon.Items.Add(L10n.T("UpdateIconApp"));
@@ -313,45 +338,65 @@ namespace HostsLauncher.UI
 
             btnCreateUpdateShortcut = new Button
             {
-                Location = new Point(20, 56),
-                Size = new Size(605, 38),
+                Location = new Point(20, 52),
+                Size = new Size(605, 34),
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
-                BackColor = Color.FromArgb(235, 255, 240)
+                BackColor = Color.FromArgb(235, 255, 240),
+                Cursor = Cursors.Hand
             };
             btnCreateUpdateShortcut.Click += BtnCreateUpdateShortcut_Click;
 
+            lblUpdateHint = new Label
+            {
+                Location = new Point(20, 92),
+                Size = new Size(605, 20),
+                ForeColor = Color.DarkSlateGray
+            };
+            lblExtraHint = lblUpdateHint;
+
+            gbUpdateShortcut.Controls.Add(lblUpdateIcon);
+            gbUpdateShortcut.Controls.Add(cboUpdateIcon);
+            gbUpdateShortcut.Controls.Add(btnCreateUpdateShortcut);
+            gbUpdateShortcut.Controls.Add(lblUpdateHint);
+
+            // Блок 3: Ярлык панели управления Hosts Manager
+            gbManagerShortcut = new GroupBox
+            {
+                Location = new Point(15, 414),
+                Size = new Size(645, 96)
+            };
+
             btnCreateManagerShortcut = new Button
             {
-                Location = new Point(20, 100),
-                Size = new Size(605, 38),
+                Location = new Point(20, 24),
+                Size = new Size(605, 34),
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
-                BackColor = Color.FromArgb(245, 245, 250)
+                BackColor = Color.FromArgb(245, 245, 250),
+                Cursor = Cursors.Hand
             };
             btnCreateManagerShortcut.Click += BtnCreateManagerShortcut_Click;
 
-            lblExtraHint = new Label
+            lblManagerHint = new Label
             {
-                Location = new Point(20, 146),
-                Size = new Size(605, 36),
+                Location = new Point(20, 64),
+                Size = new Size(605, 20),
                 ForeColor = Color.DarkSlateGray
             };
 
-            gbExtraShortcuts.Controls.Add(lblUpdateIcon);
-            gbExtraShortcuts.Controls.Add(cboUpdateIcon);
-            gbExtraShortcuts.Controls.Add(btnCreateUpdateShortcut);
-            gbExtraShortcuts.Controls.Add(btnCreateManagerShortcut);
-            gbExtraShortcuts.Controls.Add(lblExtraHint);
+            gbManagerShortcut.Controls.Add(btnCreateManagerShortcut);
+            gbManagerShortcut.Controls.Add(lblManagerHint);
 
+            // Нижняя подсказка
             lblShortcutHint = new Label
             {
-                Location = new Point(15, 550),
-                Size = new Size(645, 35),
+                Location = new Point(15, 518),
+                Size = new Size(645, 34),
                 ForeColor = Color.DimGray
             };
 
-            tabShortcuts.Controls.Add(gbEditor);
-            tabShortcuts.Controls.Add(gbSettings);
-            tabShortcuts.Controls.Add(gbExtraShortcuts);
+            tabShortcuts.Controls.Add(gbHostsShortcut);
+            tabShortcuts.Controls.Add(gbUpdateShortcut);
+            tabShortcuts.Controls.Add(gbManagerShortcut);
             tabShortcuts.Controls.Add(lblShortcutHint);
         }
 
@@ -585,8 +630,14 @@ namespace HostsLauncher.UI
             if (tabShortcuts != null) tabShortcuts.Text = L10n.T("TabShortcuts");
             if (tabProviders != null) tabProviders.Text = L10n.T("TabSubscriptions");
 
-            // Shortcuts Tab
-            if (gbEditor != null) gbEditor.Text = L10n.T("GbEditorTitle");
+            if (btnOpenHostsHeader != null)
+            {
+                btnOpenHostsHeader.Text = L10n.T("BtnHeaderOpenHosts");
+                if (toolTip != null) toolTip.SetToolTip(btnOpenHostsHeader, L10n.T("BtnHeaderOpenHostsTooltip"));
+            }
+
+            // Shortcuts Tab - Block 1: Open hosts shortcut
+            if (gbHostsShortcut != null) gbHostsShortcut.Text = L10n.T("GbHostsShortcutTitle");
             if (rbOpenWith != null) rbOpenWith.Text = L10n.T("RbOpenWith");
             if (rbNpp != null) rbNpp.Text = L10n.T("RbNpp");
             if (rbCode != null) rbCode.Text = L10n.T("RbCode");
@@ -594,7 +645,6 @@ namespace HostsLauncher.UI
             if (rbCustom != null) rbCustom.Text = L10n.T("RbCustom");
             if (btnBrowseCustom != null) btnBrowseCustom.Text = L10n.T("BtnBrowse");
 
-            if (gbSettings != null) gbSettings.Text = L10n.T("GbSettingsTitle");
             if (lblShortcutName != null) lblShortcutName.Text = L10n.T("LblShortcutName");
             if (lblIcon != null) lblIcon.Text = L10n.T("LblIcon");
             if (chkAdmin != null) chkAdmin.Text = L10n.T("ChkAdmin");
@@ -611,7 +661,9 @@ namespace HostsLauncher.UI
             }
 
             if (btnCreateShortcut != null) btnCreateShortcut.Text = L10n.T("BtnCreateHostsShortcut");
-            if (gbExtraShortcuts != null) gbExtraShortcuts.Text = L10n.T("GbExtraShortcutsTitle");
+
+            // Shortcuts Tab - Block 2: Fast 1-click update shortcut
+            if (gbUpdateShortcut != null) gbUpdateShortcut.Text = L10n.T("GbUpdateShortcutTitle");
             if (lblUpdateIcon != null) lblUpdateIcon.Text = L10n.T("LblUpdateIcon");
 
             if (cboUpdateIcon != null)
@@ -625,8 +677,13 @@ namespace HostsLauncher.UI
             }
 
             if (btnCreateUpdateShortcut != null) btnCreateUpdateShortcut.Text = L10n.T("BtnCreateUpdateShortcut");
+            if (lblUpdateHint != null) lblUpdateHint.Text = L10n.T("LblUpdateHint");
+
+            // Shortcuts Tab - Block 3: Hosts Manager panel shortcut
+            if (gbManagerShortcut != null) gbManagerShortcut.Text = L10n.T("GbManagerShortcutTitle");
             if (btnCreateManagerShortcut != null) btnCreateManagerShortcut.Text = L10n.T("BtnCreateManagerShortcut");
-            if (lblExtraHint != null) lblExtraHint.Text = L10n.T("LblExtraHint");
+            if (lblManagerHint != null) lblManagerHint.Text = L10n.T("LblManagerHint");
+
             if (lblShortcutHint != null) lblShortcutHint.Text = L10n.T("ShortcutHint");
 
             // Providers Tab - GeoHide
@@ -883,6 +940,36 @@ namespace HostsLauncher.UI
             catch (Exception ex)
             {
                 MessageBox.Show(L10n.T("ShortcutCreateError", ex.Message), L10n.T("Error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnOpenHostsHeader_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string openHostsExe = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "OpenHostsFile.exe");
+                if (File.Exists(openHostsExe))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = openHostsExe,
+                        UseShellExecute = true
+                    });
+                }
+                else
+                {
+                    string hostsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), @"drivers\etc\hosts");
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "rundll32.exe",
+                        Arguments = "shell32.dll,OpenAs_RunDLL " + hostsPath,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, L10n.T("Error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

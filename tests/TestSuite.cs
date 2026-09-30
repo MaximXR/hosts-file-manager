@@ -254,7 +254,10 @@ namespace HostsLauncher.Tests
                 Assert(!string.IsNullOrWhiteSpace(form.gbExtraShortcuts.Text), "gbExtraShortcuts GroupBox title is empty!");
                 Assert(!string.IsNullOrWhiteSpace(form.lblUpdateIcon.Text), "lblUpdateIcon text is empty!");
                 Assert(!string.IsNullOrWhiteSpace(form.btnCreateUpdateShortcut.Text), "btnCreateUpdateShortcut text is empty!");
-                Assert(!string.IsNullOrWhiteSpace(form.btnCreateManagerShortcut.Text), "btnCreateManagerShortcut text is empty!");
+                Assert(!string.IsNullOrWhiteSpace(form.btnOpenHostsHeader.Text), "btnOpenHostsHeader text is empty!");
+                Assert(!string.IsNullOrWhiteSpace(form.gbManagerShortcut.Text), "gbManagerShortcut title is empty!");
+                Assert(!string.IsNullOrWhiteSpace(form.lblUpdateHint.Text), "lblUpdateHint text is empty!");
+                Assert(!string.IsNullOrWhiteSpace(form.lblManagerHint.Text), "lblManagerHint text is empty!");
                 Assert(!string.IsNullOrWhiteSpace(form.lblExtraHint.Text), "lblExtraHint text is empty!");
                 Assert(!string.IsNullOrWhiteSpace(form.lblShortcutHint.Text), "lblShortcutHint text is empty!");
 
@@ -293,8 +296,9 @@ namespace HostsLauncher.Tests
                 Assert(form.Text.Contains("Hosts Manager"), "Form Window Title not in English");
                 Assert(form.tabShortcuts.Text.Contains("Shortcut"), "tabShortcuts not in English");
                 Assert(form.tabProviders.Text.Contains("Subscriptions"), "tabProviders not in English");
+                Assert(form.btnOpenHostsHeader.Text.Contains("Open hosts"), "btnOpenHostsHeader not in English");
                 Assert(form.rbOpenWith.Text.Contains("Standard"), "rbOpenWith not in English");
-                Assert(form.btnCreateShortcut.Text.Contains("Create hosts file shortcut"), "btnCreateShortcut not in English");
+                Assert(form.btnCreateShortcut.Text.Contains("Create shortcut"), "btnCreateShortcut not in English");
                 Assert(form.btnCreateUpdateShortcut.Text.Contains("Update hosts in 1 click"), "btnCreateUpdateShortcut not in English");
                 Assert(form.btnCreateManagerShortcut.Text.Contains("Hosts Manager Panel"), "btnCreateManagerShortcut not in English");
                 Assert(form.chkGeoHide.Text.Contains("Enable GeoHide"), "chkGeoHide not in English");
