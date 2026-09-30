@@ -243,7 +243,19 @@ namespace HostsManager
                 string cmd = args[0].ToLowerInvariant();
                 if (cmd == "/update-silent" || cmd == "/update-now" || cmd == "/apply-hosts-elevated")
                 {
-                    bool success = UpdateHostsRoutine(cmd == "/update-silent");
+                    bool isSilent = (cmd == "/update-silent" || cmd == "/apply-hosts-elevated");
+                    bool success = UpdateHostsRoutine(isSilent);
+                    if (cmd == "/update-now")
+                    {
+                        if (success)
+                        {
+                            MessageBox.Show("Файл hosts успешно обновлен!\nПодписки синхронизированы, DNS-кэш Windows сброшен.", "HostsManager — Обновление завершено", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Не удалось обновить файл hosts (проверьте интернет или окно подтверждения прав администратора UAC).", "HostsManager — Ошибка обновления", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
                     Environment.Exit(success ? 0 : 1);
                     return;
                 }
@@ -495,6 +507,7 @@ namespace HostsManager
         private Button btnResetPresets;
 
         private Label lblTaskStatus;
+        private ComboBox cboSchedule;
         private TextBox txtSchedulerCmd;
         private Button btnCopyCmd;
         private Button btnToggleTask;
@@ -515,7 +528,7 @@ namespace HostsManager
         private void InitUI()
         {
             this.Text = "Hosts Manager & Shortcut Creator";
-            this.Size = new Size(690, 715);
+            this.Size = new Size(690, 740);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -538,18 +551,18 @@ namespace HostsManager
             GroupBox gbEditor = new GroupBox
             {
                 Text = "В каком редакторе открывать hosts по клику на ярлык",
-                Location = new Point(15, 15),
-                Size = new Size(645, 175)
+                Location = new Point(15, 12),
+                Size = new Size(645, 168)
             };
 
-            rbOpenWith = new RadioButton { Text = "Стандартное окно Windows «Открыть с помощью...» (выбор редактора)", Location = new Point(20, 25), AutoSize = true, Checked = true };
-            rbNpp = new RadioButton { Text = "Notepad++ (при наличии в системе)", Location = new Point(20, 50), AutoSize = true };
-            rbCode = new RadioButton { Text = "Visual Studio Code", Location = new Point(20, 75), AutoSize = true };
-            rbNotepad = new RadioButton { Text = "Системный Блокнот (всегда с правами администратора)", Location = new Point(20, 100), AutoSize = true };
-            rbCustom = new RadioButton { Text = "Другой редактор:", Location = new Point(20, 125), AutoSize = true };
+            rbOpenWith = new RadioButton { Text = "Стандартное окно Windows «Открыть с помощью...» (выбор редактора)", Location = new Point(20, 24), AutoSize = true, Checked = true };
+            rbNpp = new RadioButton { Text = "Notepad++ (при наличии в системе)", Location = new Point(20, 48), AutoSize = true };
+            rbCode = new RadioButton { Text = "Visual Studio Code", Location = new Point(20, 72), AutoSize = true };
+            rbNotepad = new RadioButton { Text = "Системный Блокнот (всегда с правами администратора)", Location = new Point(20, 96), AutoSize = true };
+            rbCustom = new RadioButton { Text = "Другой редактор:", Location = new Point(20, 120), AutoSize = true };
 
-            txtCustomPath = new TextBox { Location = new Point(160, 124), Size = new Size(380, 23), Enabled = false };
-            btnBrowseCustom = new Button { Text = "Обзор...", Location = new Point(550, 123), Size = new Size(80, 25), Enabled = false };
+            txtCustomPath = new TextBox { Location = new Point(160, 119), Size = new Size(380, 23), Enabled = false };
+            btnBrowseCustom = new Button { Text = "Обзор...", Location = new Point(550, 118), Size = new Size(80, 25), Enabled = false };
 
             rbCustom.CheckedChanged += (s, e) =>
             {
@@ -579,22 +592,22 @@ namespace HostsManager
 
             GroupBox gbSettings = new GroupBox
             {
-                Text = "Параметры ярлыка",
-                Location = new Point(15, 205),
-                Size = new Size(645, 140)
+                Text = "Параметры ярлыка для файла hosts",
+                Location = new Point(15, 186),
+                Size = new Size(645, 130)
             };
 
-            Label lblName = new Label { Text = "Имя ярлыка:", Location = new Point(20, 30), AutoSize = true };
-            txtShortcutName = new TextBox { Text = "Hosts", Location = new Point(140, 27), Size = new Size(200, 23) };
+            Label lblName = new Label { Text = "Имя ярлыка:", Location = new Point(20, 26), AutoSize = true };
+            txtShortcutName = new TextBox { Text = "Hosts", Location = new Point(140, 23), Size = new Size(200, 23) };
 
-            Label lblIcon = new Label { Text = "Иконка:", Location = new Point(20, 65), AutoSize = true };
-            cboIcon = new ComboBox { Location = new Point(140, 62), Size = new Size(480, 23), DropDownStyle = ComboBoxStyle.DropDownList };
+            Label lblIcon = new Label { Text = "Иконка:", Location = new Point(20, 58), AutoSize = true };
+            cboIcon = new ComboBox { Location = new Point(140, 55), Size = new Size(480, 23), DropDownStyle = ComboBoxStyle.DropDownList };
             cboIcon.Items.Add("Системная иконка файла без расширения (shell32.dll, 0) [Рекомендуется]");
             cboIcon.Items.Add("Иконка Блокнота (notepad.exe, 0)");
             cboIcon.Items.Add("Иконка Notepad++ (при наличии)");
             cboIcon.SelectedIndex = 0;
 
-            chkAdmin = new CheckBox { Text = "Запрашивать права администратора при открытии (/admin)", Location = new Point(20, 100), AutoSize = true };
+            chkAdmin = new CheckBox { Text = "Запрашивать права администратора при открытии (/admin)", Location = new Point(20, 92), AutoSize = true };
 
             gbSettings.Controls.Add(lblName);
             gbSettings.Controls.Add(txtShortcutName);
@@ -604,25 +617,65 @@ namespace HostsManager
 
             btnCreateShortcut = new Button
             {
-                Text = "✨ Создать ярлык на Рабочем столе",
-                Location = new Point(15, 360),
-                Size = new Size(645, 44),
+                Text = "📄 Создать ярлык: Открыть файл hosts",
+                Location = new Point(15, 324),
+                Size = new Size(645, 42),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 245, 255)
             };
             btnCreateShortcut.Click += BtnCreateShortcut_Click;
 
+            GroupBox gbExtraShortcuts = new GroupBox
+            {
+                Text = "Дополнительные полезные ярлыки на Рабочий стол",
+                Location = new Point(15, 376),
+                Size = new Size(645, 120)
+            };
+
+            Button btnCreateUpdateShortcut = new Button
+            {
+                Text = "🔄 Создать ярлык: Обновить hosts в 1 клик",
+                Location = new Point(20, 28),
+                Size = new Size(295, 40),
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                BackColor = Color.FromArgb(235, 255, 240)
+            };
+            btnCreateUpdateShortcut.Click += BtnCreateUpdateShortcut_Click;
+
+            Button btnCreateManagerShortcut = new Button
+            {
+                Text = "⚙️ Создать ярлык: Открыть HostsManager",
+                Location = new Point(330, 28),
+                Size = new Size(295, 40),
+                Font = new Font("Segoe UI", 9.5F),
+                BackColor = Color.FromArgb(245, 245, 250)
+            };
+            btnCreateManagerShortcut.Click += BtnCreateManagerShortcut_Click;
+
+            Label lblExtraHint = new Label
+            {
+                Text = "💡 Ярлык обновления мгновенно синхронизирует все включенные подписки и сбрасывает DNS-кэш Windows в один клик.",
+                Location = new Point(20, 78),
+                Size = new Size(605, 32),
+                ForeColor = Color.DarkSlateGray
+            };
+
+            gbExtraShortcuts.Controls.Add(btnCreateUpdateShortcut);
+            gbExtraShortcuts.Controls.Add(btnCreateManagerShortcut);
+            gbExtraShortcuts.Controls.Add(lblExtraHint);
+
             lblShortcutHint = new Label
             {
-                Text = "💡 Подсказка: После создания нажмите правой кнопкой по ярлыку на Рабочем столе и выберите «Закрепить на панели задач».",
-                Location = new Point(15, 415),
+                Text = "📌 Любой созданный ярлык можно закрепить на панели задач Windows (ПКМ по ярлыку на Рабочем столе → «Закрепить на панели задач»).",
+                Location = new Point(15, 510),
                 Size = new Size(645, 35),
-                ForeColor = Color.Gray
+                ForeColor = Color.DimGray
             };
 
             tabShortcuts.Controls.Add(gbEditor);
             tabShortcuts.Controls.Add(gbSettings);
             tabShortcuts.Controls.Add(btnCreateShortcut);
+            tabShortcuts.Controls.Add(gbExtraShortcuts);
             tabShortcuts.Controls.Add(lblShortcutHint);
         }
 
@@ -633,7 +686,7 @@ namespace HostsManager
             {
                 Text = "1. Сервис GeoHide (Антиблокировка / DNS Прокси)",
                 Location = new Point(15, 8),
-                Size = new Size(645, 175)
+                Size = new Size(645, 195)
             };
 
             chkGeoHide = new CheckBox
@@ -655,10 +708,23 @@ namespace HostsManager
             rbGeoEU = new RadioButton { Text = "Европа (EU)", Location = new Point(35, 92), AutoSize = true };
             rbGeoUS = new RadioButton { Text = "США (US)", Location = new Point(35, 116), AutoSize = true };
 
+            LinkLabel lnkGeoSite = new LinkLabel
+            {
+                Text = "🌐 Открыть сайт сервиса GeoHide: https://dns.geohide.ru:8443/",
+                Location = new Point(35, 142),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9F)
+            };
+            lnkGeoSite.LinkClicked += (s, e) =>
+            {
+                try { Process.Start("https://dns.geohide.ru:8443/"); }
+                catch (Exception ex) { MessageBox.Show("Не удалось открыть браузер: " + ex.Message); }
+            };
+
             lblGeoHideInfo = new Label
             {
                 Text = "Статус: Обновлено: " + (string.IsNullOrEmpty(config.GeoHideLastUpdated) ? "Никогда" : config.GeoHideLastUpdated),
-                Location = new Point(15, 145),
+                Location = new Point(35, 168),
                 AutoSize = true,
                 ForeColor = Color.DarkSlateGray
             };
@@ -675,13 +741,14 @@ namespace HostsManager
             gbGeo.Controls.Add(rbGeoRU);
             gbGeo.Controls.Add(rbGeoEU);
             gbGeo.Controls.Add(rbGeoUS);
+            gbGeo.Controls.Add(lnkGeoSite);
             gbGeo.Controls.Add(lblGeoHideInfo);
 
             // Блок 2: Дополнительные источники
             GroupBox gbCustom = new GroupBox
             {
                 Text = "2. Каталог популярных подписок и свои источники (отметьте нужные галочками):",
-                Location = new Point(15, 190),
+                Location = new Point(15, 210),
                 Size = new Size(645, 220)
             };
 
@@ -699,13 +766,16 @@ namespace HostsManager
             lvCustomProviders.Columns.Add("URL источника", 205);
             lvCustomProviders.Columns.Add("Обновлено", 115);
 
-            btnAddCustom = new Button { Text = "➕ Свой URL...", Location = new Point(15, 153), Size = new Size(115, 28) };
+            btnAddCustom = new Button { Text = "➕ Свой URL...", Location = new Point(15, 153), Size = new Size(110, 28) };
             btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(135, 153), Size = new Size(90, 28) };
+            btnRemoveCustom = new Button { Text = "🗑️ Удалить", Location = new Point(130, 153), Size = new Size(85, 28) };
             btnRemoveCustom.Click += BtnRemoveCustom_Click;
 
-            btnResetPresets = new Button { Text = "🔄 Восстановить каталог пресетов", Location = new Point(385, 153), Size = new Size(245, 28) };
+            Button btnOpenUrl = new Button { Text = "🌐 Открыть ссылку", Location = new Point(220, 153), Size = new Size(140, 28) };
+            btnOpenUrl.Click += (s, e) => OpenSelectedProviderUrl();
+
+            btnResetPresets = new Button { Text = "🔄 Восстановить каталог пресетов", Location = new Point(365, 153), Size = new Size(265, 28) };
             btnResetPresets.Click += (s, e) =>
             {
                 if (MessageBox.Show("Сбросить список к популярным встроенным пресетам?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -716,9 +786,25 @@ namespace HostsManager
                 }
             };
 
+            // Двойной клик и контекстное меню
+            lvCustomProviders.DoubleClick += (s, e) => OpenSelectedProviderUrl();
+
+            ContextMenuStrip cms = new ContextMenuStrip();
+            ToolStripMenuItem miOpen = new ToolStripMenuItem("🌐 Открыть ссылку в браузере");
+            miOpen.Click += (s, e) => OpenSelectedProviderUrl();
+            ToolStripMenuItem miCopy = new ToolStripMenuItem("📋 Скопировать URL в буфер");
+            miCopy.Click += (s, e) => CopySelectedProviderUrl();
+            ToolStripMenuItem miDel = new ToolStripMenuItem("🗑️ Удалить источник");
+            miDel.Click += BtnRemoveCustom_Click;
+            cms.Items.Add(miOpen);
+            cms.Items.Add(miCopy);
+            cms.Items.Add(new ToolStripSeparator());
+            cms.Items.Add(miDel);
+            lvCustomProviders.ContextMenuStrip = cms;
+
             Label lblCustomHint = new Label
             {
-                Text = "💡 Пресеты: GitHub520 (ускорение GitHub), Windows SpyBlocker (анти-слежка), AdAway и StevenBlack.",
+                Text = "💡 Подсказка: Двойной клик или правая кнопка мыши по строке открывает сайт подписки в браузере.",
                 Location = new Point(15, 190),
                 Size = new Size(615, 22),
                 ForeColor = Color.DarkSlateBlue
@@ -727,6 +813,7 @@ namespace HostsManager
             gbCustom.Controls.Add(lvCustomProviders);
             gbCustom.Controls.Add(btnAddCustom);
             gbCustom.Controls.Add(btnRemoveCustom);
+            gbCustom.Controls.Add(btnOpenUrl);
             gbCustom.Controls.Add(btnResetPresets);
             gbCustom.Controls.Add(lblCustomHint);
 
@@ -734,8 +821,8 @@ namespace HostsManager
             GroupBox gbScheduler = new GroupBox
             {
                 Text = "3. Фоновое автообновление (Планировщик задач Windows)",
-                Location = new Point(15, 418),
-                Size = new Size(645, 140)
+                Location = new Point(15, 436),
+                Size = new Size(645, 160)
             };
 
             lblTaskStatus = new Label
@@ -746,31 +833,51 @@ namespace HostsManager
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
 
+            Label lblFreq = new Label
+            {
+                Text = "Расписание:",
+                Location = new Point(15, 49),
+                AutoSize = true
+            };
+
+            cboSchedule = new ComboBox
+            {
+                Location = new Point(100, 46),
+                Size = new Size(225, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            cboSchedule.Items.Add("Раз в день в 09:00 (утро)");
+            cboSchedule.Items.Add("Раз в день в 14:00 (день)");
+            cboSchedule.Items.Add("Каждые 6 часов");
+            cboSchedule.Items.Add("Каждые 12 часов");
+            cboSchedule.Items.Add("При каждом входе в систему");
+            cboSchedule.SelectedIndex = 0;
+
             string cmdString = "\"" + Application.ExecutablePath + "\" /update-silent";
             txtSchedulerCmd = new TextBox
             {
                 Text = cmdString,
-                Location = new Point(15, 48),
-                Size = new Size(505, 23),
+                Location = new Point(335, 46),
+                Size = new Size(185, 23),
                 ReadOnly = true,
                 BackColor = Color.WhiteSmoke
             };
 
             btnCopyCmd = new Button
             {
-                Text = "📋 Копировать",
-                Location = new Point(525, 47),
+                Text = "📋 Команда",
+                Location = new Point(525, 45),
                 Size = new Size(105, 25)
             };
             btnCopyCmd.Click += (s, e) =>
             {
                 Clipboard.SetText(txtSchedulerCmd.Text);
-                MessageBox.Show("Команда скопирована в буфер обмена!", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Команда скопирована в буфер обмена!\n" + txtSchedulerCmd.Text, "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
             };
 
             btnToggleTask = new Button
             {
-                Location = new Point(15, 82),
+                Location = new Point(15, 78),
                 Size = new Size(310, 36),
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold)
             };
@@ -779,7 +886,7 @@ namespace HostsManager
             btnOpenTaskScheduler = new Button
             {
                 Text = "📅 Открыть в Планировщике Windows",
-                Location = new Point(335, 82),
+                Location = new Point(335, 78),
                 Size = new Size(295, 36),
                 Font = new Font("Segoe UI", 9F)
             };
@@ -787,13 +894,15 @@ namespace HostsManager
 
             Label lblPathHint = new Label
             {
-                Text = "📍 В Планировщике задача находится в папке: «Библиотека планировщика заданий»",
-                Location = new Point(15, 120),
-                Size = new Size(615, 18),
-                ForeColor = Color.Gray
+                Text = "📍 В Планировщике Windows задача лежит в папке: «Библиотека планировщика заданий» → «HostsManagerAutoUpdate»",
+                Location = new Point(15, 124),
+                Size = new Size(615, 28),
+                ForeColor = Color.DimGray
             };
 
             gbScheduler.Controls.Add(lblTaskStatus);
+            gbScheduler.Controls.Add(lblFreq);
+            gbScheduler.Controls.Add(cboSchedule);
             gbScheduler.Controls.Add(txtSchedulerCmd);
             gbScheduler.Controls.Add(btnCopyCmd);
             gbScheduler.Controls.Add(btnToggleTask);
@@ -804,8 +913,8 @@ namespace HostsManager
             btnUpdateNow = new Button
             {
                 Text = "🔄 Синхронизировать hosts сейчас",
-                Location = new Point(15, 568),
-                Size = new Size(645, 44),
+                Location = new Point(15, 604),
+                Size = new Size(645, 42),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240)
             };
@@ -814,8 +923,8 @@ namespace HostsManager
             lblProviderStatus = new Label
             {
                 Text = "Личные ручные записи в hosts изолированы и надежно защищены от перезаписи.",
-                Location = new Point(15, 620),
-                Size = new Size(645, 30),
+                Location = new Point(15, 650),
+                Size = new Size(645, 25),
                 ForeColor = Color.Gray
             };
 
@@ -872,7 +981,7 @@ namespace HostsManager
             {
                 lblTaskStatus.Text = "⚪ Задача не создана (фоновое автообновление выключено)";
                 lblTaskStatus.ForeColor = Color.DimGray;
-                btnToggleTask.Text = "⚡ Создать задачу (раз в день в 09:00)";
+                btnToggleTask.Text = "⚡ Создать задачу с выбранным расписанием";
                 btnToggleTask.BackColor = Color.FromArgb(235, 255, 240);
             }
         }
@@ -894,63 +1003,21 @@ namespace HostsManager
             }
         }
 
-        private void BtnCreateShortcut_Click(object sender, EventArgs e)
+        private void CreateDesktopShortcut(string targetPath, string arguments, string iconLocation, string linkName, string description)
         {
             try
             {
-                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                string launcherPath = Path.Combine(baseDir, "OpenHostsFile.exe");
-                if (!File.Exists(launcherPath)) launcherPath = Path.Combine(baseDir, "OpenHosts.exe");
-                if (!File.Exists(launcherPath)) launcherPath = Path.Combine(baseDir, "HostsLauncher.exe");
-                if (!File.Exists(launcherPath))
-                {
-                    launcherPath = Application.ExecutablePath;
-                }
-
-                string args = "";
-                if (rbNpp.Checked) args = "/npp";
-                else if (rbCode.Checked) args = "/code";
-                else if (rbNotepad.Checked) args = "/notepad";
-                else if (rbCustom.Checked)
-                {
-                    if (string.IsNullOrEmpty(txtCustomPath.Text))
-                    {
-                        MessageBox.Show("Укажите путь к редактору!", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-                    args = "\"" + txtCustomPath.Text + "\"";
-                }
-
-                if (chkAdmin.Checked && !args.Contains("/admin"))
-                {
-                    args = (args + " /admin").Trim();
-                }
-
-                string iconLoc = @"C:\Windows\System32\shell32.dll,0";
-                if (cboIcon.SelectedIndex == 1) iconLoc = "notepad.exe,0";
-                else if (cboIcon.SelectedIndex == 2)
-                {
-                    string npp = @"C:\Program Files\Notepad++\notepad++.exe";
-                    if (File.Exists(npp)) iconLoc = npp + ",0";
-                }
-
                 string desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string linkName = string.IsNullOrEmpty(txtShortcutName.Text) ? "Hosts" : txtShortcutName.Text.Trim();
                 string shortcutPath = Path.Combine(desktop, linkName + ".lnk");
 
                 Type shellType = Type.GetTypeFromProgID("WScript.Shell");
                 dynamic shell = Activator.CreateInstance(shellType);
                 dynamic shortcut = shell.CreateShortcut(shortcutPath);
-                shortcut.TargetPath = launcherPath;
-                shortcut.Arguments = args;
-                shortcut.IconLocation = iconLoc;
-                shortcut.Description = "Файл hosts";
+                shortcut.TargetPath = targetPath;
+                shortcut.Arguments = arguments;
+                shortcut.IconLocation = iconLocation;
+                shortcut.Description = description;
                 shortcut.Save();
-
-                config.PreferredEditor = rbNpp.Checked ? "npp" : (rbCode.Checked ? "code" : (rbNotepad.Checked ? "notepad" : (rbCustom.Checked ? "custom" : "openwith")));
-                config.CustomEditorPath = txtCustomPath.Text;
-                config.AlwaysAdmin = chkAdmin.Checked;
-                Program.SaveConfig(config);
 
                 MessageBox.Show(
                     "Ярлык \"" + linkName + ".lnk\" успешно создан на Рабочем столе!\n\n" +
@@ -963,6 +1030,95 @@ namespace HostsManager
             catch (Exception ex)
             {
                 MessageBox.Show("Ошибка создания ярлыка: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnCreateShortcut_Click(object sender, EventArgs e)
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string launcherPath = Path.Combine(baseDir, "OpenHostsFile.exe");
+            if (!File.Exists(launcherPath)) launcherPath = Path.Combine(baseDir, "OpenHosts.exe");
+            if (!File.Exists(launcherPath)) launcherPath = Path.Combine(baseDir, "HostsLauncher.exe");
+            if (!File.Exists(launcherPath)) launcherPath = Application.ExecutablePath;
+
+            string args = "";
+            if (rbNpp.Checked) args = "/npp";
+            else if (rbCode.Checked) args = "/code";
+            else if (rbNotepad.Checked) args = "/notepad";
+            else if (rbCustom.Checked)
+            {
+                if (string.IsNullOrEmpty(txtCustomPath.Text))
+                {
+                    MessageBox.Show("Укажите путь к редактору!", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                args = "\"" + txtCustomPath.Text + "\"";
+            }
+
+            if (chkAdmin.Checked && !args.Contains("/admin"))
+            {
+                args = (args + " /admin").Trim();
+            }
+
+            string iconLoc = @"C:\Windows\System32\shell32.dll,0";
+            if (cboIcon.SelectedIndex == 1) iconLoc = "notepad.exe,0";
+            else if (cboIcon.SelectedIndex == 2)
+            {
+                string npp = @"C:\Program Files\Notepad++\notepad++.exe";
+                if (File.Exists(npp)) iconLoc = npp + ",0";
+            }
+
+            string linkName = string.IsNullOrEmpty(txtShortcutName.Text) ? "Hosts" : txtShortcutName.Text.Trim();
+
+            config.PreferredEditor = rbNpp.Checked ? "npp" : (rbCode.Checked ? "code" : (rbNotepad.Checked ? "notepad" : (rbCustom.Checked ? "custom" : "openwith")));
+            config.CustomEditorPath = txtCustomPath.Text;
+            config.AlwaysAdmin = chkAdmin.Checked;
+            Program.SaveConfig(config);
+
+            CreateDesktopShortcut(launcherPath, args, iconLoc, linkName, "Быстрое открытие файла hosts");
+        }
+
+        private void BtnCreateUpdateShortcut_Click(object sender, EventArgs e)
+        {
+            string exePath = Application.ExecutablePath;
+            string iconLoc = @"C:\Windows\System32\shell32.dll,238";
+            CreateDesktopShortcut(exePath, "/update-now", iconLoc, "Обновить hosts", "Обновление подписок и сброс DNS в 1 клик");
+        }
+
+        private void BtnCreateManagerShortcut_Click(object sender, EventArgs e)
+        {
+            string exePath = Application.ExecutablePath;
+            string iconLoc = @"C:\Windows\System32\shell32.dll,21";
+            CreateDesktopShortcut(exePath, "", iconLoc, "Hosts Manager", "Панель управления hosts, подписками и планировщиком");
+        }
+
+        private void OpenSelectedProviderUrl()
+        {
+            if (lvCustomProviders.SelectedItems.Count == 0) return;
+            var item = lvCustomProviders.SelectedItems[0];
+            var provider = item.Tag as CustomProviderConfig;
+            if (provider != null && !string.IsNullOrEmpty(provider.Url))
+            {
+                try
+                {
+                    Process.Start(provider.Url);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Не удалось открыть ссылку: " + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void CopySelectedProviderUrl()
+        {
+            if (lvCustomProviders.SelectedItems.Count == 0) return;
+            var item = lvCustomProviders.SelectedItems[0];
+            var provider = item.Tag as CustomProviderConfig;
+            if (provider != null && !string.IsNullOrEmpty(provider.Url))
+            {
+                Clipboard.SetText(provider.Url);
+                MessageBox.Show("URL источника скопирован в буфер обмена:\n" + provider.Url, "Скопировано", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -1064,11 +1220,41 @@ namespace HostsManager
                 else
                 {
                     string exePath = Application.ExecutablePath;
-                    psi.Arguments = string.Format("/create /tn \"{0}\" /tr \"\\\"{1}\\\" /update-silent\" /sc daily /st 09:00 /rl highest /f", taskName, exePath);
+                    string scheduleArgs = "/sc daily /st 09:00";
+                    string humanSchedule = "каждый день в 09:00";
+
+                    if (cboSchedule != null)
+                    {
+                        switch (cboSchedule.SelectedIndex)
+                        {
+                            case 1:
+                                scheduleArgs = "/sc daily /st 14:00";
+                                humanSchedule = "каждый день в 14:00";
+                                break;
+                            case 2:
+                                scheduleArgs = "/sc hourly /mo 6";
+                                humanSchedule = "каждые 6 часов";
+                                break;
+                            case 3:
+                                scheduleArgs = "/sc hourly /mo 12";
+                                humanSchedule = "каждые 12 часов";
+                                break;
+                            case 4:
+                                scheduleArgs = "/sc onlogon";
+                                humanSchedule = "при каждом входе в Windows";
+                                break;
+                            default:
+                                scheduleArgs = "/sc daily /st 09:00";
+                                humanSchedule = "каждый день в 09:00";
+                                break;
+                        }
+                    }
+
+                    psi.Arguments = string.Format("/create /tn \"{0}\" /tr \"\\\"{1}\\\" /update-silent\" {2} /rl highest /f", taskName, exePath, scheduleArgs);
                     Process p = Process.Start(psi);
                     if (p != null) p.WaitForExit();
                     RefreshTaskStatus();
-                    MessageBox.Show("Задача успешно создана в Планировщике Windows!\nЗапуск: каждый день в 09:00 с наивысшими правами.", "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(string.Format("Задача успешно создана в Планировщике Windows!\n\nРасписание: {0}.\nЗапуск производится тихо в фоновом режиме с наивысшими правами.", humanSchedule), "Готово", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
