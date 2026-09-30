@@ -179,7 +179,7 @@ namespace HostsLauncher.UI
 
         private void InitUI()
         {
-            this.Size = new Size(690, 745);
+            this.Size = new Size(690, 825);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -384,7 +384,7 @@ namespace HostsLauncher.UI
             // Блок 3: Ярлык панели управления Hosts Manager
             gbManagerShortcut = new GroupBox
             {
-                Location = new Point(15, 414),
+                Location = new Point(15, 430),
                 Size = new Size(645, 96)
             };
 
@@ -411,7 +411,7 @@ namespace HostsLauncher.UI
             // Нижняя подсказка
             lblShortcutHint = new Label
             {
-                Location = new Point(15, 518),
+                Location = new Point(15, 542),
                 Size = new Size(645, 34),
                 ForeColor = Color.DimGray
             };
@@ -487,22 +487,22 @@ namespace HostsLauncher.UI
             gbCustom = new GroupBox
             {
                 Location = new Point(15, 126),
-                Size = new Size(645, 256)
+                Size = new Size(645, 332)
             };
 
             pnlCustomProviders = new Panel
             {
                 Location = new Point(12, 22),
-                Size = new Size(621, 192),
+                Size = new Size(621, 268),
                 AutoScroll = true,
                 BorderStyle = BorderStyle.FixedSingle,
                 BackColor = Color.White
             };
 
-            btnAddCustom = new Button { Location = new Point(12, 222), Size = new Size(175, 26) };
+            btnAddCustom = new Button { Location = new Point(12, 298), Size = new Size(175, 26) };
             btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnResetPresets = new Button { Location = new Point(195, 222), Size = new Size(165, 26) };
+            btnResetPresets = new Button { Location = new Point(195, 298), Size = new Size(165, 26) };
             btnResetPresets.Click += (s, e) =>
             {
                 if (MessageBox.Show(L10n.T("ConfirmResetPresets"), L10n.T("Confirmation"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -515,7 +515,7 @@ namespace HostsLauncher.UI
 
             lblCustomHint = new Label
             {
-                Location = new Point(370, 220),
+                Location = new Point(370, 296),
                 Size = new Size(260, 30),
                 ForeColor = Color.DarkSlateBlue
             };
@@ -528,7 +528,7 @@ namespace HostsLauncher.UI
             // Блок 3: Планировщик Windows
             gbScheduler = new GroupBox
             {
-                Location = new Point(15, 388),
+                Location = new Point(15, 466),
                 Size = new Size(645, 150)
             };
 
@@ -624,7 +624,7 @@ namespace HostsLauncher.UI
             // Кнопка синхронизации
             btnUpdateNow = new Button
             {
-                Location = new Point(15, 546),
+                Location = new Point(15, 624),
                 Size = new Size(645, 40),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240),
@@ -634,7 +634,7 @@ namespace HostsLauncher.UI
 
             lblProviderStatus = new Label
             {
-                Location = new Point(15, 590),
+                Location = new Point(15, 668),
                 Size = new Size(645, 20),
                 ForeColor = Color.Gray
             };
