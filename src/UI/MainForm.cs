@@ -428,7 +428,7 @@ namespace HostsLauncher.UI
             gbGeo = new GroupBox
             {
                 Location = new Point(15, 6),
-                Size = new Size(645, 134)
+                Size = new Size(645, 114)
             };
 
             chkGeoHide = new CheckBox
@@ -458,12 +458,12 @@ namespace HostsLauncher.UI
             };
 
             rbGeoRU = new RadioButton { Location = new Point(30, 66), AutoSize = true, Checked = true };
-            rbGeoEU = new RadioButton { Location = new Point(30, 88), AutoSize = true };
-            rbGeoUS = new RadioButton { Location = new Point(220, 88), AutoSize = true };
+            rbGeoEU = new RadioButton { Location = new Point(265, 66), AutoSize = true };
+            rbGeoUS = new RadioButton { Location = new Point(395, 66), AutoSize = true };
 
             lblGeoHideInfo = new Label
             {
-                Location = new Point(30, 110),
+                Location = new Point(30, 90),
                 AutoSize = true,
                 ForeColor = Color.DarkSlateGray
             };
@@ -483,26 +483,26 @@ namespace HostsLauncher.UI
             gbGeo.Controls.Add(rbGeoUS);
             gbGeo.Controls.Add(lblGeoHideInfo);
 
-            // Блок 2: Дополнительные источники (Просторный и компактный список)
+            // Блок 2: Дополнительные источники (Вмещает все встроенные пресеты без скролла)
             gbCustom = new GroupBox
             {
-                Location = new Point(15, 146),
-                Size = new Size(645, 228)
+                Location = new Point(15, 126),
+                Size = new Size(645, 256)
             };
 
             pnlCustomProviders = new Panel
             {
                 Location = new Point(12, 22),
-                Size = new Size(621, 168),
+                Size = new Size(621, 192),
                 AutoScroll = true,
                 BorderStyle = BorderStyle.FixedSingle,
                 BackColor = Color.White
             };
 
-            btnAddCustom = new Button { Location = new Point(12, 195), Size = new Size(175, 26) };
+            btnAddCustom = new Button { Location = new Point(12, 222), Size = new Size(175, 26) };
             btnAddCustom.Click += BtnAddCustom_Click;
 
-            btnResetPresets = new Button { Location = new Point(195, 195), Size = new Size(165, 26) };
+            btnResetPresets = new Button { Location = new Point(195, 222), Size = new Size(165, 26) };
             btnResetPresets.Click += (s, e) =>
             {
                 if (MessageBox.Show(L10n.T("ConfirmResetPresets"), L10n.T("Confirmation"), MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -515,7 +515,7 @@ namespace HostsLauncher.UI
 
             lblCustomHint = new Label
             {
-                Location = new Point(370, 193),
+                Location = new Point(370, 220),
                 Size = new Size(260, 30),
                 ForeColor = Color.DarkSlateBlue
             };
@@ -528,7 +528,7 @@ namespace HostsLauncher.UI
             // Блок 3: Планировщик Windows
             gbScheduler = new GroupBox
             {
-                Location = new Point(15, 380),
+                Location = new Point(15, 388),
                 Size = new Size(645, 150)
             };
 
@@ -624,8 +624,8 @@ namespace HostsLauncher.UI
             // Кнопка синхронизации
             btnUpdateNow = new Button
             {
-                Location = new Point(15, 536),
-                Size = new Size(645, 38),
+                Location = new Point(15, 546),
+                Size = new Size(645, 40),
                 Font = new Font("Segoe UI", 10F, FontStyle.Bold),
                 BackColor = Color.FromArgb(235, 255, 240),
                 Cursor = Cursors.Hand
@@ -634,7 +634,7 @@ namespace HostsLauncher.UI
 
             lblProviderStatus = new Label
             {
-                Location = new Point(15, 578),
+                Location = new Point(15, 590),
                 Size = new Size(645, 20),
                 ForeColor = Color.Gray
             };

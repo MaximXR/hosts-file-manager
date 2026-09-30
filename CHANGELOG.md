@@ -16,9 +16,10 @@
 - **Модульная архитектура и набор автотестов**: исходный код структурирован по пространствам имен (`Models`, `Localization`, `Services`, `UI`). Внедрен автоматический тестовый комплект `test.bat` (10 тестов), валидирующий паритет локализации, работу с блоками hosts, параметры XML планировщика и заполненность UI-контролов.
 
 #### Изменено
-- **Идеальная посадка кнопки синхронизации**: скорректирована вертикальная геометрия блоков (компактный выбор регионов GeoHide, оптимизированные отступы каталога и планировщика). Кнопка «Синхронизировать hosts сейчас» и статусная строка полностью помещаются в окне с комфортным запасом.
+- **Уточнение текста регионов и однострочная верстка**: для России фраза о задержке заменена на точную «Россия (RU) — рекомендуется» (в EN: «Russia (RU) — recommended»). Все три радио-переключателя регионов размещены в одну компактную горизонтальную линию.
+- **Отображение всех пресетов без скролла**: высота области каталога увеличена до 192px — теперь все 5 встроенных пресетов (GitHub520, StevenBlack, WindowsSpyBlocker, AdAway, Dan Pollock) полностью видны одновременно без полосы прокрутки.
+- **Оптимальное позиционирование кнопки синхронизации**: кнопка «Синхронизировать hosts сейчас» опущена ниже, эффективно заполняя полезное пространство окна, и идеально обрамлена со статусной строкой.
 - **Единые размеры кнопок и строгое выравнивание**: все три кнопки создания ярлыков приведены к абсолютно одинаковым размерам (605 × 34 px), поля ввода и выпадающие списки центрированы по единой направляющей (X = 225, W = 400).
-- **Компактный редизайн списка подписок**: оптимизирована компоновка списка источников (высота строки 32px, зебра-фон, бейджи `[🌐 Сайт]` и `[📄 hosts]`, всплывающие подсказки). Все встроенные пресеты помещаются на экране без вертикальной полосы прокрутки.
 
 ### English
 #### Added
@@ -29,9 +30,10 @@
 - **Modular Architecture & Automated Test Suite**: code divided into clean namespaces with 10 automated unit/UI tests executed before compilation.
 
 #### Changed
-- **Pixel-Perfect Sync Button Framing**: optimized vertical block geometry, region radio button flow, and margins so the "Sync hosts now" button and status label fit with clean spacing and zero cutoff.
+- **Precise Region Wording & Single-Line Layout**: replaced misleading server latency remark with "Russia (RU) — recommended", placing all 3 region radio buttons on a single horizontal row.
+- **All 5 Presets Fully Visible Without Scrolling**: expanded subscriptions list panel to 192px so all 5 built-in sources fit concurrently with zero scrollbar.
+- **Lowered Sync Button Positioning**: "Sync hosts now" button lowered into the lower window section, perfectly framed above the bottom boundary.
 - **Equal Shortcut Button Sizes & Pixel-Perfect Alignment**: all three shortcut creation buttons have identical dimensions (605 × 34 px) with aligned input fields (X = 225, W = 400).
-- **Compact Subscriptions UI Redesign**: streamlined custom providers list with sleek 32px rows, zebra styling, compact badges `[🌐 Сайт]` / `[📄 hosts]`, and tooltips.
 
 ---
 

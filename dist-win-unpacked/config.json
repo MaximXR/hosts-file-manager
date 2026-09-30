@@ -16,7 +16,15 @@
       "LastUpdated": ""
     },
     {
-      "Name": "Windows SpyBlocker (Телеметрия)",
+      "Name": "StevenBlack Unified (Реклама + Вредоносные сайты)",
+      "Url": "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+      "SiteUrl": "https://github.com/StevenBlack/hosts",
+      "Enabled": false,
+      "LastHash": "",
+      "LastUpdated": ""
+    },
+    {
+      "Name": "WindowsSpyBlocker (Блокировка телеметрии Windows)",
       "Url": "https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt",
       "SiteUrl": "https://github.com/crazy-max/WindowsSpyBlocker",
       "Enabled": false,
@@ -24,20 +32,20 @@
       "LastUpdated": ""
     },
     {
-      "Name": "AdAway (Блокировка рекламы)",
+      "Name": "AdAway (Популярный блокировщик рекламы)",
       "Url": "https://adaway.org/hosts.txt",
-      "SiteUrl": "https://adaway.org",
+      "SiteUrl": "https://adaway.org/",
       "Enabled": false,
       "LastHash": "",
       "LastUpdated": ""
     },
     {
-      "Name": "StevenBlack (Анти-реклама и фишинг)",
-      "Url": "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
-      "SiteUrl": "https://github.com/StevenBlack/hosts",
+      "Name": "Dan Pollock (someonewhocares — спам и трекинг)",
+      "Url": "https://someonewhocares.org/hosts/zero/hosts",
+      "SiteUrl": "https://someonewhocares.org/hosts/",
       "Enabled": false,
       "LastHash": "",
-      "LastUpdated": "Отключен"
+      "LastUpdated": ""
     }
   ],
   "TaskScheduleIndex": 1,
