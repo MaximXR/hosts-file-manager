@@ -5,6 +5,30 @@
 
 ---
 
+## [1.2.0] - 2026-09-30
+
+### Русский
+#### Добавлено
+- **Мультиязычность и локализация (i18n)**: полная поддержка русского и английского языков (`🇷🇺 Русский` / `🇬🇧 English`) с мгновенным переключением интерфейса, диалоговых окон и карточек на лету. Выбранный язык сохраняется в `config.json`.
+- **Новый встроенный пресет Dan Pollock**: добавлен популярный и активный источник блокировки нежелательного контента (`someonewhocares.org`) с прямым переходом на сайт проекта.
+- **Аудит актуальности источников подписок**: выполнена проверка активности всех встроенных репозиториев (GitHub520, StevenBlack, WindowsSpyBlocker, AdAway, GeoHide, Dan Pollock). Все проекты поддерживаются авторами; актуализированы ссылки на официальные домашние страницы.
+- **Улучшенный мониторинг Планировщика**: статус отображает признак выполнения при простое компьютера (`[режим простоя ПК]`) и время следующего срабатывания.
+
+#### Изменено
+- Обновлен файл документации `README.md` в соответствии с инфостилем и высокими стандартами проектов Antigravity.
+
+### English
+#### Added
+- **Full Localization & i18n**: bilingual support for Russian and English (`🇷🇺 Русский` / `🇬🇧 English`) with instantaneous on-the-fly UI switching across all controls, dialogs, and cards. Language preference is preserved in `config.json`.
+- **New Built-in Dan Pollock Preset**: added the popular, well-maintained ad & spyware blocklist source (`someonewhocares.org`) with direct project website access.
+- **Source Health & Activity Audit**: verified active maintenance for all bundled presets (GitHub520, StevenBlack, WindowsSpyBlocker, AdAway, GeoHide, Dan Pollock); updated official website endpoints.
+- **Enhanced Task Scheduler Status**: live display of computer idle state constraint (`[computer idle mode]`) and upcoming execution schedule.
+
+#### Changed
+- Redesigned `README.md` following infostyle principles and reference repository architecture.
+
+---
+
 ## [1.1.0] - 2026-09-30
 
 ### Русский
