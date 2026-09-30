@@ -123,7 +123,11 @@ namespace HostsLauncher.UI
                     string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"resources\app.ico");
                     if (File.Exists(iconPath))
                     {
-                        this.Icon = new Icon(iconPath);
+                        byte[] icoBytes = File.ReadAllBytes(iconPath);
+                        using (MemoryStream ms = new MemoryStream(icoBytes))
+                        {
+                            this.Icon = new Icon(ms);
+                        }
                     }
                     else
                     {

@@ -11,3 +11,7 @@
 dist/
 obj/
 bin/
+
+# Raw icon source uploads
+resources/111*
+
