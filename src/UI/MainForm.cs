@@ -1385,11 +1385,11 @@ namespace HostsLauncher.UI
                     }
                     else
                     {
-                        lblProviderStatus.Text = L10n.T("SyncError");
-                        lblProviderStatus.ForeColor = Color.Red;
+                        lblProviderStatus.Text = L10n.T("SyncWarningPreserved", DateTime.Now.ToString("HH:mm:ss"));
+                        lblProviderStatus.ForeColor = Color.DarkOrange;
                         ShowSystemNotification(
                             L10n.T("SyncErrorToastTitle"),
-                            L10n.T("SyncErrorToastBody"),
+                            L10n.T("SyncWarningToastBody"),
                             ToolTipIcon.Warning);
                     }
                 }));

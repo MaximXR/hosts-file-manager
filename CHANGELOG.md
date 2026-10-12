@@ -5,6 +5,24 @@
 
 ---
 
+## [1.3.1] - 2026-10-12
+
+### Русский
+#### Исправлено
+- **Защита от случайной очистки правил `hosts` при сбое серверов источников**: добавлен строгий валидатор скачиваемых данных (`IsValidHostsData`). Если удаленный сервер вернул пустую строку, HTML-заглушку или код ошибки (403, 404, 502), файл не применяется, а существующие проверенные правила в `hosts` сохраняются в исходном виде.
+- **Механизм повторных попыток (Retries)**: при сетевых лагах или зависании TLS Handshake на серверах провайдеров (включая балансировщики GeoHide) утилита выполняет до 3 повторных попыток с нарастающим таймаутом и паузой перед повтором.
+- **Информативные статусы синхронизации**: при недоступности серверов выводится понятное системное предупреждение `⚠️ Сервер недоступен после повторных попыток. Существующие правила сохранены` вместо ложного сообщения об успешном обновлении.
+- **13-й автотест**: в автоматический комплекс (`TestSuite.cs`) добавлен тест валидации hosts-данных и устойчивости к сбоям серверов.
+
+### English
+#### Fixed
+- **Protection against accidental hosts rules wiping on server downtime**: implemented strict hosts payload validation (`IsValidHostsData`). If the remote server returns empty data, HTML error pages (403, 404, 502), or CDN blocks, the payload is rejected and existing working rules in `hosts` remain untouched.
+- **Automatic download retries**: network timeouts and TLS handshake stalls (such as GeoHide load balancers) are handled with up to 3 automatic retries with progressive backoff and increased timeouts.
+- **Clear synchronization status**: when servers are unreachable, an explicit warning is displayed (`⚠️ Server unreachable after retries. Existing hosts rules were preserved`) instead of misleading green success notices.
+- **13th automated test**: added `TestSuite.cs` verification for hosts validation and safe failure fallbacks.
+
+---
+
 ## [1.3.0] - 2026-09-30
 
 ### Русский

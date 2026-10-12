@@ -29,6 +29,11 @@ namespace HostsLauncher.Services
             if (req != null)
             {
                 req.Timeout = timeoutMs;
+                HttpWebRequest httpReq = req as HttpWebRequest;
+                if (httpReq != null)
+                {
+                    httpReq.ReadWriteTimeout = timeoutMs;
+                }
             }
             return req;
         }
@@ -142,6 +147,87 @@ namespace HostsLauncher.Services
             }
         }
 
+        public static bool IsValidHostsData(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            if (text.Length < 60) return false;
+
+            string trimmed = text.Trim();
+            if (trimmed.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("<html", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.IndexOf("<html", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                trimmed.IndexOf("</html>", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                trimmed.IndexOf("403 Forbidden", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                trimmed.IndexOf("404 Not Found", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                trimmed.IndexOf("502 Bad Gateway", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return false;
+            }
+
+            int validHostLines = 0;
+            using (StringReader reader = new StringReader(text))
+            {
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    line = line.Trim();
+                    if (string.IsNullOrEmpty(line) || line.StartsWith("#")) continue;
+
+                    string[] parts = line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length >= 2)
+                    {
+                        IPAddress ip;
+                        if (IPAddress.TryParse(parts[0], out ip))
+                        {
+                            validHostLines++;
+                            if (validHostLines >= 5) return true;
+                        }
+                    }
+                }
+            }
+
+            return validHostLines >= 3;
+        }
+
+        public static string DownloadStringWithRetry(string url, int maxRetries = 3, int baseTimeoutMs = 6000)
+        {
+            if (string.IsNullOrEmpty(url)) return null;
+
+            Exception lastEx = null;
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    int currentTimeout = baseTimeoutMs + (attempt - 1) * 3000;
+                    using (FastWebClient client = new FastWebClient(currentTimeout))
+                    {
+                        string data = client.DownloadString(url);
+                        if (IsValidHostsData(data))
+                        {
+                            return data;
+                        }
+                        else
+                        {
+                            lastEx = new FormatException("Downloaded data is not a valid hosts format or contains an HTML error.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lastEx = ex;
+                }
+
+                if (attempt < maxRetries)
+                {
+                    System.Threading.Thread.Sleep(500 * attempt);
+                }
+            }
+
+            Debug.WriteLine(string.Format("Failed to download '{0}' after {1} attempts: {2}",
+                url, maxRetries, lastEx != null ? lastEx.Message : "unknown"));
+            return null;
+        }
+
         public static bool UpdateHostsRoutine(AppConfig config, bool isSilent)
         {
             if (!IsAdmin())
@@ -179,84 +265,94 @@ namespace HostsLauncher.Services
                 catch { }
 
                 bool hasAnyChanges = false;
+                bool hadAnyDownloadErrors = false;
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
 
-                using (FastWebClient client = new FastWebClient(10000))
-                {
-                    // 1. GeoHide Provider
-                    string geoStart = "# === BEGIN HOSTS-MANAGER MANAGED BLOCK [GeoHide] ===";
-                    string geoEnd = "# === END HOSTS-MANAGER MANAGED BLOCK [GeoHide] ===";
+                // 1. GeoHide Provider
+                string geoStart = "# === BEGIN HOSTS-MANAGER MANAGED BLOCK [GeoHide] ===";
+                string geoEnd = "# === END HOSTS-MANAGER MANAGED BLOCK [GeoHide] ===";
 
-                    if (!config.GeoHideEnabled)
+                if (!config.GeoHideEnabled)
+                {
+                    if (hostsContent.Contains(geoStart))
                     {
-                        if (hostsContent.Contains(geoStart))
+                        hostsContent = RemoveBlock(hostsContent, geoStart, geoEnd);
+                        hasAnyChanges = true;
+                        config.GeoHideLastUpdated = "Отключен";
+                    }
+                }
+                else
+                {
+                    string region = string.IsNullOrEmpty(config.GeoHideRegion) ? "ru" : config.GeoHideRegion.ToLowerInvariant();
+                    string geoUrl = region == "ru" ? "https://geohide.ru/hosts" : ("https://geohide.ru/" + region + "/hosts");
+
+                    string downloadedData = DownloadStringWithRetry(geoUrl, 3, 6000);
+                    if (!string.IsNullOrEmpty(downloadedData))
+                    {
+                        string newHash = ComputeHash(downloadedData);
+
+                        if (config.GeoHideLastHash != newHash || !hostsContent.Contains(geoStart))
                         {
-                            hostsContent = RemoveBlock(hostsContent, geoStart, geoEnd);
+                            hostsContent = ApplyBlock(hostsContent, geoStart, geoEnd, geoUrl, downloadedData);
+                            config.GeoHideLastHash = newHash;
+                            config.GeoHideLastUpdated = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
                             hasAnyChanges = true;
-                            config.GeoHideLastUpdated = "Отключен";
+                        }
+                        else
+                        {
+                            // Server answered with identical hash: update last check timestamp
+                            config.GeoHideLastUpdated = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
                         }
                     }
                     else
                     {
-                        string region = string.IsNullOrEmpty(config.GeoHideRegion) ? "ru" : config.GeoHideRegion.ToLowerInvariant();
-                        string geoUrl = region == "ru" ? "https://geohide.ru/hosts" : ("https://geohide.ru/" + region + "/hosts");
+                        // Server is down or unreachable: DO NOT clear or corrupt existing block in hosts!
+                        hadAnyDownloadErrors = true;
+                        Debug.WriteLine("GeoHide download failed after retries. Preserving existing hosts rules.");
+                    }
+                }
 
-                        try
+                // 2. Custom Providers
+                if (config.CustomProviders != null)
+                {
+                    for (int i = 0; i < config.CustomProviders.Count; i++)
+                    {
+                        var provider = config.CustomProviders[i];
+                        string blockStart = string.Format("# === BEGIN HOSTS-MANAGER MANAGED BLOCK [{0}] ===", provider.Name);
+                        string blockEnd = string.Format("# === END HOSTS-MANAGER MANAGED BLOCK [{0}] ===", provider.Name);
+
+                        if (!provider.Enabled)
                         {
-                            string downloadedData = client.DownloadString(geoUrl);
+                            if (hostsContent.Contains(blockStart))
+                            {
+                                hostsContent = RemoveBlock(hostsContent, blockStart, blockEnd);
+                                hasAnyChanges = true;
+                                provider.LastUpdated = "Отключен";
+                            }
+                            continue;
+                        }
+
+                        string downloadedData = DownloadStringWithRetry(provider.Url, 2, 7000);
+                        if (!string.IsNullOrEmpty(downloadedData))
+                        {
                             string newHash = ComputeHash(downloadedData);
 
-                            if (config.GeoHideLastHash != newHash || !hostsContent.Contains(geoStart))
+                            if (provider.LastHash != newHash || !hostsContent.Contains(blockStart))
                             {
-                                hostsContent = ApplyBlock(hostsContent, geoStart, geoEnd, geoUrl, downloadedData);
-                                config.GeoHideLastHash = newHash;
-                                config.GeoHideLastUpdated = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
+                                hostsContent = ApplyBlock(hostsContent, blockStart, blockEnd, provider.Url, downloadedData);
+                                provider.LastHash = newHash;
+                                provider.LastUpdated = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
                                 hasAnyChanges = true;
                             }
+                            else
+                            {
+                                provider.LastUpdated = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
+                            }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Debug.WriteLine("Ошибка скачивания GeoHide: " + ex.Message);
-                        }
-                    }
-
-                    // 2. Custom Providers
-                    if (config.CustomProviders != null)
-                    {
-                        for (int i = 0; i < config.CustomProviders.Count; i++)
-                        {
-                            var provider = config.CustomProviders[i];
-                            string blockStart = string.Format("# === BEGIN HOSTS-MANAGER MANAGED BLOCK [{0}] ===", provider.Name);
-                            string blockEnd = string.Format("# === END HOSTS-MANAGER MANAGED BLOCK [{0}] ===", provider.Name);
-
-                            if (!provider.Enabled)
-                            {
-                                if (hostsContent.Contains(blockStart))
-                                {
-                                    hostsContent = RemoveBlock(hostsContent, blockStart, blockEnd);
-                                    hasAnyChanges = true;
-                                    provider.LastUpdated = "Отключен";
-                                }
-                                continue;
-                            }
-
-                            try
-                            {
-                                string downloadedData = client.DownloadString(provider.Url);
-                                string newHash = ComputeHash(downloadedData);
-
-                                if (provider.LastHash != newHash || !hostsContent.Contains(blockStart))
-                                {
-                                    hostsContent = ApplyBlock(hostsContent, blockStart, blockEnd, provider.Url, downloadedData);
-                                    provider.LastHash = newHash;
-                                    provider.LastUpdated = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
-                                    hasAnyChanges = true;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine("Ошибка скачивания " + provider.Name + ": " + ex.Message);
-                            }
+                            hadAnyDownloadErrors = true;
+                            Debug.WriteLine("Failed downloading custom provider: " + provider.Name + ". Preserving existing rules.");
                         }
                     }
                 }
@@ -268,7 +364,7 @@ namespace HostsLauncher.Services
                 }
 
                 ConfigManager.SaveConfig(config);
-                return true;
+                return !hadAnyDownloadErrors;
             }
             catch (Exception ex)
             {

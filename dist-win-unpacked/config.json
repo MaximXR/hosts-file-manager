@@ -4,8 +4,8 @@
   "AlwaysAdmin": false,
   "GeoHideEnabled": true,
   "GeoHideRegion": "ru",
-  "GeoHideLastUpdated": "30.09.2026 02:51:47",
-  "GeoHideLastHash": "4e4a09f3463abd27e3baf60d653c8ad557582906541a01019781096a2f5b58c6",
+  "GeoHideLastUpdated": "12.10.2026 16:54:34",
+  "GeoHideLastHash": "6c4bdf5a4573467650452ad910c0e1b48ab819663297d4077076e73e9d22fdae",
   "CustomProviders": [
     {
       "Id": "github520",

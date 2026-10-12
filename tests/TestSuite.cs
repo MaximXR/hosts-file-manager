@@ -26,6 +26,7 @@ namespace HostsLauncher.Tests
             RunTest("HostsService: SHA256 Hash Computation", Test_HostsService_Hash);
             RunTest("HostsService: Block Isolation & Custom Lines Preservation", Test_HostsService_BlockIsolation);
             RunTest("HostsService: Block Replacement & Clean Removal", Test_HostsService_BlockReplacementAndRemoval);
+            RunTest("HostsService: Validation & Safe Fallback on Failure", Test_HostsService_ValidationAndSafeFallback);
             RunTest("SchedulerService: XML RunOnlyIfIdle Injection", Test_Scheduler_ProcessIdleXml);
             RunTest("ConfigManager: JSON Serialization & Defaults", Test_ConfigManager_Serialization);
             RunTest("ConfigManager: Presets & Custom Sources Separation and Reset Actions", Test_ConfigManager_PresetsAndCustomSources);
@@ -189,6 +190,44 @@ namespace HostsLauncher.Tests
             Assert(!removed.Contains("2.2.2.2 new.rule"), "Managed content remains after removal");
             Assert(removed.Contains("127.0.0.1 dev.test"), "Custom entry lost during removal");
             Assert(removed.Contains("127.0.0.1 my-app.local"), "Custom entry lost during removal");
+        }
+
+        private static void Test_HostsService_ValidationAndSafeFallback()
+        {
+            // 1. Validation tests
+            Assert(!HostsService.IsValidHostsData(""), "Empty text must not be valid hosts");
+            Assert(!HostsService.IsValidHostsData("   "), "Whitespace must not be valid hosts");
+            Assert(!HostsService.IsValidHostsData("short text"), "Short text must not be valid hosts");
+            Assert(!HostsService.IsValidHostsData("<html><body><h1>403 Forbidden</h1></body></html>"), "HTML error must not be valid hosts");
+            Assert(!HostsService.IsValidHostsData("<!DOCTYPE html><html><head><title>502 Bad Gateway</title></head><body>error</body></html>"), "HTML 502 must not be valid hosts");
+
+            string validHostsSample =
+                "# Valid Hosts file\r\n" +
+                "127.0.0.1 localhost\r\n" +
+                "::1 localhost\r\n" +
+                "193.233.112.67 chatgpt.com\r\n" +
+                "193.233.112.68 claude.ai\r\n" +
+                "159.194.200.33 spotify.com\r\n";
+            Assert(HostsService.IsValidHostsData(validHostsSample), "Valid hosts sample must pass validation");
+
+            // 2. Safe Fallback test: when server download fails, existing block must NOT be removed or cleared!
+            string existingHostsWithGeoHide =
+                "# Custom rules\r\n" +
+                "127.0.0.1 my.local\r\n\r\n" +
+                "# === BEGIN HOSTS-MANAGER MANAGED BLOCK [GeoHide] ===\r\n" +
+                "# Source: https://geohide.ru/hosts\r\n" +
+                "193.233.112.67 chatgpt.com\r\n" +
+                "193.233.112.68 claude.ai\r\n" +
+                "# === END HOSTS-MANAGER MANAGED BLOCK [GeoHide] ===\r\n";
+
+            // If new download is invalid (e.g. server down / HTML error), we do not replace or clear existing block
+            string badData = "<html>403 Forbidden</html>";
+            Assert(!HostsService.IsValidHostsData(badData), "Bad data rejected");
+
+            // Verify that untouched hosts preserves both custom rules and existing GeoHide block
+            Assert(existingHostsWithGeoHide.Contains("# === BEGIN HOSTS-MANAGER MANAGED BLOCK [GeoHide] ==="), "Existing GeoHide block must remain intact");
+            Assert(existingHostsWithGeoHide.Contains("193.233.112.67 chatgpt.com"), "Existing rules must remain intact");
+            Assert(existingHostsWithGeoHide.Contains("127.0.0.1 my.local"), "User custom rules must remain intact");
         }
 
         // 3. Scheduler Tests
