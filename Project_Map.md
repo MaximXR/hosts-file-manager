@@ -37,7 +37,7 @@ graph TD
 
     subgraph ModelsState ["4. Модели и состояние (Models & State)"]
         D1["src/Models/AppConfig.cs<br/>(AppConfig, CustomProviderConfig, ConfigManager)"]
-        D2["dist-win-unpacked/config.json<br/>(Пользовательские настройки и источники)"]
+        D2["dist-win-unpacked/config.json<br/>(Пользовательские настройки, создаётся при первом запуске)"]
         D3["dist-win-unpacked/presets.json<br/>(Каталог официальных подписок)"]
     end
 
@@ -46,7 +46,7 @@ graph TD
     end
 
     subgraph Testing ["6. Верификация (Testing & Quality)"]
-        F1["tests/TestSuite.cs<br/>(Автоматический комплекс: 12 тестов)"]
+        F1["tests/TestSuite.cs<br/>(Автоматический комплекс: 13 тестов)"]
         F2["test.bat<br/>(Скрипт запуска тестов перед любой сборкой)"]
     end
 
@@ -79,11 +79,11 @@ graph TD
    - [`/src/Services/HostsService.cs`](/src/Services/HostsService.cs): Изоляция подписок управляемыми маркерами `# === BEGIN HOSTS-MANAGER MANAGED BLOCK: <Name> ===`, сохранение пользовательских записей, проверка хеша SHA256 (защита от лишней перезаписи диска), автоматический бэкап `hosts.bak`, сброс DNS через WinAPI `dnsapi.dll!DnsFlushResolverCache` + `ipconfig /flushdns`.
    - [`/src/Services/SchedulerService.cs`](/src/Services/SchedulerService.cs): Взаимодействие со службой Планировщика Windows (`schtasks.exe`). Модифицирует XML задачи для инъекции флага `<RunOnlyIfIdle>true</RunOnlyIfIdle>` (обновление строго при простое ПК) и декодирует консольный вывод `schtasks.exe` в системной OEM-кодировке (CP866) для защиты от кракозябр в локализованных ОС.
 4. **Модели и конфигурация (`Models & State`)**:
-   - [`/src/Models/AppConfig.cs`](/src/Models/AppConfig.cs): Модели `AppConfig`, `CustomProviderConfig`. Статический класс `ConfigManager` обеспечивает раздельное хранение каталога официальных подписок ([`dist-win-unpacked/presets.json`](/dist-win-unpacked/presets.json)) и пользовательского состояния ([`dist-win-unpacked/config.json`](/dist-win-unpacked/config.json)), отслеживает удаленные пресеты (`RemovedPresetIds`) и реализует трехуровневый сброс (восстановление пресетов с сохранением кастомных источников, удаление только кастомных источников, полный сброс).
+   - [`/src/Models/AppConfig.cs`](/src/Models/AppConfig.cs): Модели `AppConfig`, `CustomProviderConfig`. Статический класс `ConfigManager` обеспечивает раздельное хранение каталога официальных подписок ([`dist-win-unpacked/presets.json`](/dist-win-unpacked/presets.json)) и пользовательского состояния ([`dist-win-unpacked/config.json`](/dist-win-unpacked/config.json), создаётся автоматически при первом запуске и не хранится в git), отслеживает удаленные пресеты (`RemovedPresetIds`) и реализует трехуровневый сброс (восстановление пресетов с сохранением кастомных источников, удаление только кастомных источников, полный сброс).
 5. **Локализация (`Localization`)**:
    - [`/src/Localization/L10n.cs`](/src/Localization/L10n.cs): Единый словарь строк для русского и английского языков. Полная паритетность ключей RU ⟷ EN гарантируется автотестом.
 6. **Автоматическое тестирование (`Testing`)**:
-   - [`/tests/TestSuite.cs`](/tests/TestSuite.cs): Комплекс из 12 автоматических тестов без сторонних тестовых фреймворков. Проверяет хеширование, парсинг и изолированное удаление блоков hosts, корректность инъекции XML планировщика, паритет словарей, разделение пресетов и кастомных источников, непустые контролы интерфейса на обоих языках и адаптивное вертикальное растяжение окна.
+   - [`/tests/TestSuite.cs`](/tests/TestSuite.cs): Комплекс из 13 автоматических тестов без сторонних тестовых фреймворков. Проверяет хеширование, парсинг и изолированное удаление блоков hosts, корректность инъекции XML планировщика, паритет словарей, разделение пресетов и кастомных источников, непустые контролы интерфейса на обоих языках и адаптивное вертикальное растяжение окна.
 
 ---
 
@@ -132,13 +132,13 @@ HostsLauncher/
 │       └── MainForm.cs              # Окно управления, динамическая верстка, Toast/Balloon
 │
 ├── tests/                           # Комплекс автотестов
-│   └── TestSuite.cs                 # Исходный код автономного тестового раннера (12 проверок)
+│   └── TestSuite.cs                 # Исходный код автономного тестового раннера (13 проверок)
 │
-├── dist-win-unpacked/               # Распакованные рабочие бинарники (для локального теста)
+├── dist-win-unpacked/               # Распакованные рабочие бинарники (в git: exe, иконки, presets.json)
 │   ├── OpenHostsFile.exe            # Скомпилированный раннер
 │   ├── HostsManager.exe             # Скомпилированная панель управления
 │   ├── presets.json                 # Каталог предустановленных подписок (обновляется с версиями)
-│   └── config.json                  # Пользовательская конфигурация (сохраняется при обновлениях)
+│   └── config.json                  # Пользовательская конфигурация: создаётся при первом запуске, вне git и вне zip
 │
 └── dist/                            # Каталог готовых упакованных релизов (.gitignore)
     └── HostsLauncher-v*.zip         # Портативные zip-архивы для выгрузки на GitHub Releases
@@ -161,11 +161,11 @@ sequenceDiagram
 
     Dev->>Draft: Запись изменений во время разработки
     Dev->>Map: Актуализация карты при изменении структуры
-    Dev->>Test: Запуск набора тестов (все 12 тестов обязаны пройти)
+    Dev->>Test: Запуск набора тестов (все 13 тестов обязаны пройти)
     Dev->>Build: Запуск сборки
     Build->>Test: Авто-прогон тестов перед компиляцией
     Build->>Build: Компиляция OpenHostsFile.exe и HostsManager.exe
-    Build->>Build: Упаковка в dist/HostsLauncher-vX.Y.Z-portable.zip
+    Build->>Build: Упаковка в dist/HostsLauncher-vX.Y.Z-portable.zip (без пользовательского config.json)
     Dev->>Release: git tag vX.Y.Z & gh release upload
 ```
 

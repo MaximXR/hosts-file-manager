@@ -47,7 +47,7 @@ set "APP_VERSION="
 for /f "usebackq tokens=*" %%v in (`powershell -NoProfile -Command "(Get-Content '%~dp0version.json' | ConvertFrom-Json).version"`) do set "APP_VERSION=%%v"
 if "%APP_VERSION%"=="" set "APP_VERSION=1.2.0"
 
-powershell -NoProfile -Command "Compress-Archive -Path '%DIST_UNPACKED%\*', '%~dp0README.md', '%~dp0LICENSE' -DestinationPath '%DIST_ZIP_DIR%\HostsLauncher-v%APP_VERSION%-portable.zip' -Force"
+powershell -NoProfile -Command "Compress-Archive -Path '%DIST_UNPACKED%\HostsManager.exe', '%DIST_UNPACKED%\OpenHostsFile.exe', '%DIST_UNPACKED%\presets.json', '%DIST_UNPACKED%\resources', '%~dp0README.md', '%~dp0LICENSE' -DestinationPath '%DIST_ZIP_DIR%\HostsLauncher-v%APP_VERSION%-portable.zip' -Force"
 if %ERRORLEVEL% neq 0 (
     echo [WARNING] Could not create zip archive.
 ) else (

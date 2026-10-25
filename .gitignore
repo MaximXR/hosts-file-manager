@@ -7,6 +7,9 @@
 .idea/
 .vscode/
 
+# Runtime user state: config.json is created automatically on first launch
+dist-win-unpacked/config.json
+
 # Build artifacts (dist-win-unpacked is kept as requested, portable zips in dist/ are ignored)
 dist/
 obj/

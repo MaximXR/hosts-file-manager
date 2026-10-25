@@ -14,12 +14,18 @@
 - **Информативные статусы синхронизации**: при недоступности серверов выводится понятное системное предупреждение `⚠️ Сервер недоступен после повторных попыток. Существующие правила сохранены` вместо ложного сообщения об успешном обновлении.
 - **13-й автотест**: в автоматический комплекс (`TestSuite.cs`) добавлен тест валидации hosts-данных и устойчивости к сбоям серверов.
 
+#### Изменено
+- **`config.json` выведен из репозитория и из релизного архива**: пользовательский файл настроек больше не хранится в git (добавлен в `.gitignore`) и не попадает в `HostsLauncher-v1.3.1-portable.zip`. Чистая portable-установка создаёт `config.json` с настройками по умолчанию при первом запуске, поэтому обновление версии не затирает настройки пользователя и не приносит в архив чужие хеши синхронизации.
+
 ### English
 #### Fixed
 - **Protection against accidental hosts rules wiping on server downtime**: implemented strict hosts payload validation (`IsValidHostsData`). If the remote server returns empty data, HTML error pages (403, 404, 502), or CDN blocks, the payload is rejected and existing working rules in `hosts` remain untouched.
 - **Automatic download retries**: network timeouts and TLS handshake stalls (such as GeoHide load balancers) are handled with up to 3 automatic retries with progressive backoff and increased timeouts.
 - **Clear synchronization status**: when servers are unreachable, an explicit warning is displayed (`⚠️ Server unreachable after retries. Existing hosts rules were preserved`) instead of misleading green success notices.
 - **13th automated test**: added `TestSuite.cs` verification for hosts validation and safe failure fallbacks.
+
+#### Changed
+- **`config.json` removed from the repository and the release archive**: the user settings file is no longer tracked by git (added to `.gitignore`) and is not shipped inside `HostsLauncher-v1.3.1-portable.zip`. A clean portable install creates `config.json` with default settings on first launch, so upgrading never overwrites user preferences nor brings someone else's sync hashes into the archive.
 
 ---
 

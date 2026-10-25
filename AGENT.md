@@ -51,7 +51,7 @@ flowchart TD
 ```
 
 ### Чеклист перед завершением задачи:
-- [ ] Все 11 тестов в [`/test.bat`](/test.bat) завершаются с кодом 0 (`[SUCCESS] ALL 11 TESTS PASSED CLEANLY!`).
+- [ ] Все 13 тестов в [`/test.bat`](/test.bat) завершаются с кодом 0 (`[SUCCESS] ALL 13 TESTS PASSED CLEANLY!`).
 - [ ] Если затронута файловая структура или сигнатуры сервисов — обновлено дерево и схемы в [`/Project_Map.md`](/Project_Map.md).
 - [ ] Описание добавленных фич / фиксов зафиксировано в двуязычном черновике [`/drafts/next_release.md`](/drafts/next_release.md).
 - [ ] Сборка [`/build.bat`](/build.bat) завершается без предупреждений и ошибок компилятора.
